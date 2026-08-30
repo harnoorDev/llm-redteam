@@ -1,0 +1,6 @@
+"""Glitch-token catalog harvested from L1B3RT4S *SPECIAL_TOKENS.json (AGGREGLITCH).
+
+162 tokens across 23 taxonomy buckets including centroid_cluster,
+petertodd_leilan_duality, control_characters, corrupted_unicode.
+{"centroid_cluster": {"tokens": [{"token": " attRot"}, ...]}, ...}
+"""

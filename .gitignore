@@ -1,0 +1,32 @@
+# ── secrets & env ─────────────────────────────────────────────
+.env
+.env.*
+*.key
+*.pem
+**/credentials*
+
+# ── python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+*.egg
+
+# ── tool run artifacts (may contain sensitive model outputs) ──
+runs/
+!runs/.gitkeep
+.state-*.json
+coverage-*.json
+
+# ── ide / os ──────────────────────────────────────────────────
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# ── local extras ──────────────────────────────────────────────
+*.local.yaml
+secrets/
+.env.local

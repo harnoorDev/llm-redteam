@@ -1,0 +1,23 @@
+# Symcor internal engagement — TEMPLATE
+# Fill the three REPLACE_ fields from your security team's approval, then run:
+#   uv run redteam app -c configs/symcor-engagement.yaml
+#
+# What to ask InfoSec for (one message):
+#   1. Ticket/ROE number for "authorized non-destructive testing"
+#   2. Exact in-scope hostnames (usually a test/staging host, NOT production)
+#   3. Testing window + any rules (e.g. business hours only)
+
+scope:
+  allowed_hosts:
+    - "REPLACE_WITH_HOST_FROM_ROE"        # e.g. test-app.internal.symcor.ca
+  declaration: "REPLACE_WITH_TICKET_NUMBER_AND_APPROVER_NAME"
+
+# The app to scan (from your ROE, not guessed)
+app_target: "https://REPLACE_WITH_HOST_FROM_ROE"
+
+app:
+  wordlist: Null   # Null = built-in default path list (non-destructive)
+
+# Reporting
+out_dir: "runs"
+run_name: "symcor-engagement"

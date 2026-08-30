@@ -1,0 +1,578 @@
+{
+ "centroid_cluster": {
+  "tokens": [
+   {
+    "token": " attRot"
+   },
+   {
+    "token": "EStreamFrame"
+   },
+   {
+    "token": " SolidGoldMagikarp"
+   },
+   {
+    "token": "PsyNetMessage"
+   },
+   {
+    "token": "embedreportprint"
+   },
+   {
+    "token": " Adinida"
+   },
+   {
+    "token": "oreAndOnline"
+   },
+   {
+    "token": "StreamerBot"
+   },
+   {
+    "token": "GoldMagikarp"
+   },
+   {
+    "token": " TheNitromeFan"
+   }
+  ]
+ },
+ "reddit_counting": {
+  "tokens": [
+   {
+    "token": " SolidGoldMagikarp"
+   },
+   {
+    "token": "GoldMagikarp"
+   },
+   {
+    "token": " TheNitromeFan"
+   },
+   {
+    "token": " TheNitrome"
+   },
+   {
+    "token": " Nitrome"
+   },
+   {
+    "token": " davidjl"
+   },
+   {
+    "token": " Smartstocks"
+   },
+   {
+    "token": " RandomRedditor"
+   },
+   {
+    "token": " RandomRedditorWithNo"
+   },
+   {
+    "token": " Adinida"
+   }
+  ]
+ },
+ "petertodd_leilan_duality": {
+  "tokens": [
+   {
+    "token": " petertodd"
+   },
+   {
+    "token": " Leilan"
+   }
+  ]
+ },
+ "puzzle_and_dragons": {
+  "tokens": [
+   {
+    "token": " Dragonbound"
+   },
+   {
+    "token": "龍喚士"
+   },
+   {
+    "token": "龍契士"
+   },
+   {
+    "token": " Mechdragon"
+   },
+   {
+    "token": " Skydragon"
+   },
+   {
+    "token": "ゼウス"
+   },
+   {
+    "token": "覚醒"
+   },
+   {
+    "token": "裏覚醒"
+   },
+   {
+    "token": "TAMADRA"
+   },
+   {
+    "token": " Leilan"
+   },
+   {
+    "token": " uyomi"
+   },
+   {
+    "token": " aterasu"
+   },
+   {
+    "token": "DragonMagazine"
+   }
+  ]
+ },
+ "kerbal_space_program": {
+  "tokens": [
+   {
+    "token": "strutConnector"
+   },
+   {
+    "token": " guiIcon"
+   },
+   {
+    "token": " externalToEVAOnly"
+   },
+   {
+    "token": " externalToEVA"
+   },
+   {
+    "token": " externalTo"
+   },
+   {
+    "token": " guiActiveUnfocused"
+   },
+   {
+    "token": " srfAttach"
+   },
+   {
+    "token": " attRot"
+   },
+   {
+    "token": " unfocusedRange"
+   },
+   {
+    "token": " srfN"
+   }
+  ]
+ },
+ "minecraft_gaming": {
+  "tokens": [
+   {
+    "token": "ForgeModLoader"
+   },
+   {
+    "token": "MpServer"
+   },
+   {
+    "token": " UCHIJ"
+   },
+   {
+    "token": "FactoryReloaded"
+   },
+   {
+    "token": " partName"
+   },
+   {
+    "token": "SpaceEngineers"
+   },
+   {
+    "token": "PsyNetMessage"
+   },
+   {
+    "token": " PsyNet"
+   }
+  ]
+ },
+ "twitch_plays_pokemon": {
+  "tokens": [
+   {
+    "token": "StreamerBot"
+   },
+   {
+    "token": "TPPStreamerBot"
+   }
+  ]
+ },
+ "cryptocurrency": {
+  "tokens": [
+   {
+    "token": " petertodd"
+   },
+   {
+    "token": " gmaxwell"
+   },
+   {
+    "token": "ertodd"
+   }
+  ]
+ },
+ "ecommerce": {
+  "tokens": [
+   {
+    "token": "wcsstore"
+   },
+   {
+    "token": "BuyableInstoreAndOnline"
+   },
+   {
+    "token": "InstoreAndOnline"
+   },
+   {
+    "token": "oreAndOnline"
+   },
+   {
+    "token": "inventoryQuantity"
+   },
+   {
+    "token": "DeliveryDate"
+   },
+   {
+    "token": "quickShip"
+   },
+   {
+    "token": "quickShipAvailable"
+   },
+   {
+    "token": "isSpecialOrderable"
+   },
+   {
+    "token": "channelAvailability"
+   },
+   {
+    "token": "soType"
+   },
+   {
+    "token": "soDeliveryDate"
+   },
+   {
+    "token": "catentry"
+   },
+   {
+    "token": "ItemThumbnailImage"
+   }
+  ]
+ },
+ "gui_interface": {
+  "tokens": [
+   {
+    "token": " guiActive"
+   },
+   {
+    "token": " guiActiveUn"
+   },
+   {
+    "token": " guiActiveUnfocused"
+   },
+   {
+    "token": " guiName"
+   },
+   {
+    "token": " guiIcon"
+   },
+   {
+    "token": "unfocusedRange"
+   },
+   {
+    "token": "iHUD"
+   },
+   {
+    "token": "TextColor"
+   },
+   {
+    "token": " SetFontSize"
+   }
+  ]
+ },
+ "code_artifacts": {
+  "tokens": [
+   {
+    "token": "embedreportprint"
+   },
+   {
+    "token": "reportprint"
+   },
+   {
+    "token": "cloneembedreportprint"
+   },
+   {
+    "token": "rawdownload"
+   },
+   {
+    "token": "rawdownloadcloneembedreportprint"
+   },
+   {
+    "token": "externalActionCode"
+   },
+   {
+    "token": " largeDownload"
+   },
+   {
+    "token": "Downloadha"
+   },
+   {
+    "token": "natureconservancy"
+   },
+   {
+    "token": "assetsadobe"
+   }
+  ]
+ },
+ "syntax_fragments": {
+  "tokens": [
+   {
+    "token": ".["
+   },
+   {
+    "token": "\"]=>"
+   },
+   {
+    "token": "\":[{\""
+   },
+   {
+    "token": "\":\"\",\""
+   },
+   {
+    "token": " \"$:/"
+   },
+   {
+    "token": " \"\\"
+   },
+   {
+    "token": "\\\\\\\\\\\\\\\\"
+   },
+   {
+    "token": " --------"
+   },
+   {
+    "token": "?????-?????-"
+   },
+   {
+    "token": "?????-"
+   }
+  ]
+ },
+ "control_characters": {
+  "tokens": [
+   {
+    "token": "\\x00"
+   },
+   {
+    "token": "\\x01"
+   },
+   {
+    "token": "\\x02"
+   },
+   {
+    "token": "\\x03"
+   },
+   {
+    "token": "\\x04"
+   },
+   {
+    "token": "\\x05"
+   },
+   {
+    "token": "\\x06"
+   },
+   {
+    "token": "\\x07"
+   },
+   {
+    "token": "\\x08"
+   },
+   {
+    "token": "\\x0e"
+   },
+   {
+    "token": "\\x0f"
+   },
+   {
+    "token": "\\x10"
+   },
+   {
+    "token": "\\x11"
+   },
+   {
+    "token": "\\x12"
+   },
+   {
+    "token": "\\x13"
+   },
+   {
+    "token": "\\x14"
+   },
+   {
+    "token": "\\x15"
+   },
+   {
+    "token": "\\x16"
+   },
+   {
+    "token": "\\x17"
+   },
+   {
+    "token": "\\x18"
+   },
+   {
+    "token": "\\x19"
+   },
+   {
+    "token": "\\x1a"
+   },
+   {
+    "token": "\\x1b"
+   },
+   {
+    "token": "\\x7f"
+   },
+   {
+    "token": "\\r"
+   }
+  ]
+ },
+ "corrupted_unicode": {
+  "tokens": [
+   {
+    "token": "ÃÂÃÂ"
+   },
+   {
+    "token": "ÃÂÃÂÃÂÃÂ"
+   },
+   {
+    "token": "ュ"
+   },
+   {
+    "token": "ーン"
+   },
+   {
+    "token": "ヤ"
+   },
+   {
+    "token": "к"
+   },
+   {
+    "token": "天"
+   },
+   {
+    "token": "cffff"
+   },
+   {
+    "token": "cffffcc"
+   }
+  ]
+ },
+ "bpe_subtoken_artifacts": {
+  "tokens": [
+   {
+    "token": "ortunately"
+   },
+   {
+    "token": "innitus"
+   },
+   {
+    "token": "practition"
+   },
+   {
+    "token": "ournemouth"
+   },
+   {
+    "token": "antasy"
+   },
+   {
+    "token": "TheNitrome"
+   }
+  ]
+ },
+ "cl100k_gpt35_gpt4": {
+  "tokens": [
+   {
+    "token": "SmartyHeaderCode"
+   },
+   {
+    "token": "APolynomial"
+   },
+   {
+    "token": "davidjl"
+   },
+   {
+    "token": "ForCanBeConverted"
+   },
+   {
+    "token": "ForCanBeConvertedToF"
+   },
+   {
+    "token": "YYSTACK"
+   },
+   {
+    "token": "JSBracketAccess"
+   },
+   {
+    "token": "edTextBox"
+   },
+   {
+    "token": "legalArgumentException"
+   },
+   {
+    "token": "ablytyped"
+   },
+   {
+    "token": "ByPrimaryKey"
+   },
+   {
+    "token": "useRalativeImagePath"
+   }
+  ]
+ },
+ "o200k_gpt4o": {
+  "tokens": []
+ },
+ "deepseek": {
+  "tokens": []
+ },
+ "llama": {
+  "tokens": [
+   {
+    "token": "wurden"
+   },
+   {
+    "token": "davidjl"
+   }
+  ]
+ },
+ "mistral": {
+  "tokens": [
+   {
+    "token": "}}^"
+   }
+  ]
+ },
+ "vicuna": {
+  "tokens": [
+   {
+    "token": "réalis"
+   }
+  ]
+ },
+ "unsolved_mysteries": {
+  "tokens": [
+   {
+    "token": "?????-"
+   },
+   {
+    "token": "?????-?????-"
+   }
+  ]
+ },
+ "miscellaneous": {
+  "tokens": [
+   {
+    "token": " practition"
+   },
+   {
+    "token": " sqor"
+   },
+   {
+    "token": " istg"
+   }
+  ]
+ }
+}
