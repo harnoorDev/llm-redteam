@@ -2,18 +2,22 @@
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import ClassVar
 
 import pytest
 
-from redteam.tester.base import BaseProxyTester, ProxyFinding
 from redteam.tester.all_testers import (
-    IdorTester, AuthBypassTester, MassAssignTester, InjectionTester,
-    AuthnTester, BusinessLogicTester, SSRFTester, FileAttackTester,
+    AuthBypassTester,
+    FileAttackTester,
+    IdorTester,
+    InjectionTester,
+    SSRFTester,
 )
+from redteam.tester.base import BaseProxyTester
 
 
 class VulnAppHandler(BaseHTTPRequestHandler):
-    USERS = {"1": {"role": "user", "name": "alice"},
+    USERS: ClassVar = {"1": {"role": "user", "name": "alice"},
              "2": {"role": "user", "name": "bob"}}
 
     def do_GET(self):

@@ -12,7 +12,7 @@ import json
 
 def load_successes(prior_json: str) -> list[dict]:
     """Extract successful probes: [{goal, strategy, prompt}]."""
-    with open(prior_json, "r", encoding="utf-8") as f:
+    with open(prior_json, encoding="utf-8") as f:
         rep = json.load(f)
     wins = []
     for r in rep.get("results", []):
@@ -49,7 +49,7 @@ def transfer_strategies(prior_json: str, goals: list[str],
         if g in goal_set:
             per_goal.setdefault(g, []).append(w)
     out = []
-    for g, items in per_goal.items():
+    for _g, items in per_goal.items():
         seen = set()
         for w in items[: max_per_goal * 3]:
             if w["strategy"] in seen:
@@ -70,7 +70,7 @@ def register_transfer_strategies(prior_json: str, goals: list[str]) -> list[str]
 
     Returns the list of registered strategy names to add to the config.
     """
-    from redteam.strategies.base import _ensure_loaded, _REGISTRY, Strategy
+    from redteam.strategies.base import _REGISTRY, Strategy, _ensure_loaded
 
     _ensure_loaded()
     pairs = transfer_strategies(prior_json, goals)

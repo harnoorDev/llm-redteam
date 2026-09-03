@@ -7,7 +7,11 @@ first full compliance or generation budget.
 """
 from __future__ import annotations
 
-from redteam.judge import GRADED_PROMPT, Judge, JudgeResult
+import logging
+
+from redteam.judge import Judge, JudgeResult
+
+log = logging.getLogger(__name__)
 
 
 def fitness_of(verdict: JudgeResult) -> float:
@@ -35,7 +39,8 @@ class Evolver:
                 return (send(prompt) or "").strip()
             return (model.send_history(
                 [{"role": "user", "content": prompt}]) or "").strip()
-        except Exception:
+        except Exception as e:  # noqa: BLE001 - model may raise anything
+            log.debug("evolve attacker call failed: %s", e)
             return ""
 
     def _probe(self, prompt: str) -> tuple[str, str | None]:
@@ -45,7 +50,8 @@ class Evolver:
                 return send(prompt), None
             return self.target.send_history(
                 [{"role": "user", "content": prompt}]), None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - target may raise anything
+            log.debug("evolve probe failed: %s", e)
             return "", f"{type(e).__name__}: {e}"
 
     def _breed(self, goal: str, parent: dict) -> str:
@@ -69,7 +75,8 @@ class Evolver:
                        self.attacker_model.send_history(
                            [{"role": "user", "content": mutate_prompt}])
                        ).strip()
-            except Exception:
+            except Exception as e:  # noqa: BLE001 - model may raise anything
+                log.debug("evolve breed call failed: %s", e)
                 out = ""
         return out
 
@@ -88,7 +95,7 @@ class Evolver:
         ]
 
         history = []
-        best_prompt = population[0]["prompt"]
+        _best_prompt = population[0]["prompt"]
         best_fitness = 0.0
 
         for gen in range(1, self.generations + 1):

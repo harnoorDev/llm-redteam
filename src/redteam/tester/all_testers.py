@@ -6,10 +6,14 @@ so all findings go through the same confirmation protocol.
 from __future__ import annotations
 
 import json
+import logging
 import urllib.error
 import urllib.request
+from typing import ClassVar
 
 from redteam.tester.base import BaseProxyTester, ProxyFinding, _http
+
+log = logging.getLogger(__name__)
 
 
 class IdorTester(BaseProxyTester):
@@ -72,7 +76,8 @@ class MassAssignTester(BaseProxyTester):
         try:
             with urllib.request.urlopen(req, timeout=8) as r:
                 attack = {"status": r.status, "sha": "", "body": ""}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - network boundary
+            log.debug("proxy tester request failed: %s", e)
             attack = {"status": 0, "sha": "", "body": str(e)}
         return ProxyFinding(
             vector=self.label, endpoint=path,
@@ -87,7 +92,7 @@ class InjectionTester(BaseProxyTester):
     """SQL / cmd / LDAP / template injection via query params."""
     label = "INJECTION"
 
-    PAYLOADS = ["' OR 1=1 --", "'; echo pwned; #", "{{7*7}}"]
+    PAYLOADS: ClassVar = ["' OR 1=1 --", "'; echo pwned; #", "{{7*7}}"]
 
     def test(self, path: str, param: str = "q") -> ProxyFinding:
         import urllib.parse

@@ -43,7 +43,7 @@ class OpenAICompatTarget:
         """Send a full message history; returns assistant text."""
         payload_msgs = list(messages)
         if self.system_prompt:
-            payload_msgs = [{"role": "system", "content": self.system_prompt}] + payload_msgs
+            payload_msgs = [{"role": "system", "content": self.system_prompt}, *payload_msgs]
         try:
             resp = self._client.post(
                 "/chat/completions",

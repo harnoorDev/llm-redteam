@@ -6,7 +6,11 @@ recorded so the operator can see disagreement instead of a fake consensus.
 """
 from __future__ import annotations
 
+import logging
+
 from redteam.judge import Judge, JudgeResult
+
+log = logging.getLogger(__name__)
 
 
 class JudgePanel:
@@ -21,7 +25,8 @@ class JudgePanel:
         for j in self.judges:
             try:
                 verdicts.append(j.evaluate(goal, response))
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - one judge must not fail the panel
+                log.debug("panel judge failed: %s", e)
                 verdicts.append(JudgeResult(False, "error", f"judge_error: {e}"))
 
         if self.vote == "any":

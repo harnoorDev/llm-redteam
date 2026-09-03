@@ -1,11 +1,8 @@
 """Tests for scope guard, verification gates, and OOB callback collector."""
 import json
-import threading
-import time
 import urllib.request
 
 import pytest
-
 
 # --- scope guard (pentest-ai-agents _scope-guard.md) -----------------------------
 

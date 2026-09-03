@@ -121,7 +121,7 @@ def test_stack_composition_applies_multiple_families():
 def test_stack_with_mutate_and_suppression():
     from redteam.strategies.base import resolve_stack
     payload = resolve_stack("godmode+dataset_seed+mutate:leetspeak", GOAL)
-    assert "{" in payload and "JSONL" not in payload \
+    assert ("{" in payload and "JSONL" not in payload) \
         or "j50nl" in payload.lower() or "{" in payload  # leet applied somewhere
     # the goal itself must be leet-mutated, not plain
     assert GOAL not in payload

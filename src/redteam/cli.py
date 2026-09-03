@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
+import logging
 import os
 import sys
 import time
@@ -15,6 +17,8 @@ from redteam.runner import Runner
 from redteam.strategies.base import list_strategies
 from redteam.target import OpenAICompatTarget
 
+log = logging.getLogger(__name__)
+
 ALL_STRATEGIES = sorted(
     ["direct", "roleplay", "fiction", "crescendo", "obfuscation", "persuasion",
      "refusal_suppression"]
@@ -22,7 +26,7 @@ ALL_STRATEGIES = sorted(
 
 
 def load_config(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     mode_app = "app_target" in cfg or cfg.get("app") is not None
 
@@ -41,7 +45,8 @@ def load_config(path: str) -> dict:
         raise SystemExit(2)
 
     all_names = list_strategies()
-    default_set = all_names + [
+    default_set = [
+        *all_names,
         "godmode+refusal_suppression",
         "godmode+mutate:leetspeak",
         "dataset_seed+mutate:leetspeak_heavy",
@@ -135,8 +140,8 @@ def _build_judge(jc: dict, target_cfg: dict) -> Judge:
 
 def cmd_run(cfg: dict) -> int:
     from redteam.coverage import CoverageLedger
-    from redteam.state import RunState
     from redteam.scope import ScopeGuard
+    from redteam.state import RunState
     from redteam.verification import VerificationGate
 
     # ---- scope enforcement (abort before any network call) ----
@@ -152,16 +157,17 @@ def cmd_run(cfg: dict) -> int:
     target = _build_target(cfg["target"])
     judge = _build_judge(cfg["judge"], cfg["target"])
     vc = cfg.get("verification") or {}
-    gate = VerificationGate()
+    _gate = VerificationGate()
     oob = None
-    oob_url = None
+    _oob_url = None
     if vc.get("oob", True):
         try:
             from redteam.oob import OOBCollector
             oob = OOBCollector(host="127.0.0.1", port=0)
             oob.start()
-            oob_url = f"http://127.0.0.1:{oob.port}/canary/{{probe}}/"
-        except Exception:
+            _oob_url = f"http://127.0.0.1:{oob.port}/canary/{{probe}}/"
+        except (ImportError, OSError) as e:
+            log.warning("OOB collector unavailable, disabling: %s", e)
             oob = None
 
     # judge panel: k judges voting (v5 variance reduction)
@@ -203,7 +209,7 @@ def cmd_run(cfg: dict) -> int:
             state = RunState.load(sp)
 
     coverage = CoverageLedger()
-    run_twice = bool(vc.get("run_twice", False))
+    _run_twice = bool(vc.get("run_twice", False))
 
     work = state.remaining_work()
     total = len(work)
@@ -253,11 +259,9 @@ def cmd_run(cfg: dict) -> int:
     for r in results:
         cov_outcome = ("reported" if r.success
                        else "no_issue_found" if not r.error else "needs_follow_up")
-        try:
+        with contextlib.suppress(ValueError):
             coverage.record(r.goal, r.strategy, cov_outcome,
                             evidence=(r.judge or {}).get("raw", "") or None)
-        except ValueError:
-            pass
     cov_path = os.path.join(out_dir, f"coverage-{run_name}.json")
     coverage.save(cov_path)
 
@@ -324,7 +328,9 @@ def cmd_evolve(cfg: dict) -> int:
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "summary": {"total_probes": len(all_outcomes),
                     "successful_probes": successes,
-                    "attack_success_rate": round(successes / len(all_outcomes), 4) if all_outcomes else 0.0,
+                    "attack_success_rate": (
+                        round(successes / len(all_outcomes), 4) if all_outcomes else 0.0
+                    ),
                     "total_goals": len(all_outcomes),
                     "goals_compromised": successes, "errors": 0,
                     "by_strategy": [], "by_goal": []},
@@ -396,7 +402,6 @@ def cmd_app(cfg: dict) -> int:
 def cmd_campaign(cfg: dict) -> int:
     """Full PentAGI-style campaign: recon → battery → adapt → evolve."""
     from redteam.planner import CampaignExecutor, CampaignPlanner
-    from redteam.coverage import CoverageLedger
     from redteam.scope import ScopeGuard
 
     guard = ScopeGuard(cfg.get("scope"))
@@ -404,7 +409,7 @@ def cmd_campaign(cfg: dict) -> int:
 
     target = _build_target(cfg["target"])
     judge = _build_judge(cfg.get("judge") or {}, cfg["target"])
-    vc = cfg.get("verification") or {}
+    _vc = cfg.get("verification") or {}
 
     memory = None
     if cfg.get("memory", {}).get("enabled", True):
@@ -597,11 +602,11 @@ def cmd_pair(cfg: dict) -> int:
     print(f"\nPAIR done: {successes}/{len(results)} goals broken "
           f"in avg {report['summary']['avg_rounds']} rounds · {elapsed:.1f}s")
     print(f"report: {json_path}\nreport: {html_path}")
-    return 0 if successes == len(results) or successes > 0 else 0
+    return 0
 
 
 def cmd_report(args) -> int:
-    with open(args.json_file, "r", encoding="utf-8") as f:
+    with open(args.json_file, encoding="utf-8") as f:
         report = json.load(f)
     out = args.output
     if not out:

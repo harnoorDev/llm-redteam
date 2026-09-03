@@ -1,11 +1,14 @@
 """Probe runner: orchestrates goals x strategies against a target model."""
 from __future__ import annotations
 
+import logging
 import random
 import time
 
 from redteam.judge import Judge, JudgeResult
 from redteam.strategies.base import get_strategy
+
+log = logging.getLogger(__name__)
 
 _TRANSIENT_MARKERS = (
     "server disconnected",
@@ -31,9 +34,19 @@ def is_retryable_error(e: Exception) -> bool:
 
 class RunResult:
     __slots__ = (
-        "goal", "strategy", "success", "is_multi_turn", "turns",
-        "attack_prompts", "target_replies", "judge", "error",
-        "duration_s", "timestamp", "attempts", "grade",
+        "attack_prompts",
+        "attempts",
+        "duration_s",
+        "error",
+        "goal",
+        "grade",
+        "is_multi_turn",
+        "judge",
+        "strategy",
+        "success",
+        "target_replies",
+        "timestamp",
+        "turns",
     )
 
     def __init__(self, **kw):
@@ -92,8 +105,9 @@ class Runner:
             attempts += 1
             try:
                 return fn(*args), None, attempts
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - retry wrapper inspects error below
                 last_err = e
+                log.debug("call attempt %d failed: %s", attempts, e)
                 if i < tries - 1 and is_retryable_error(e):
                     time.sleep(self.retry_backoff * (2 ** i) *
                                (0.5 + random.random()))
@@ -183,7 +197,7 @@ class Runner:
         attempts = 0
         first_error: str | None = None
         verdict = None
-        for i in range(n):
+        for _ in range(n):
             reply, error, att = self._call_with_retry(self.target.send, prompt)
             attempts += att
             if error:
@@ -216,12 +230,13 @@ class Runner:
                      prompts: list[str]) -> list[RunResult]:
         """Run each variant as an independent single-turn probe."""
         results: list[RunResult] = []
-        for i, p in enumerate(prompts):
+        for _i, p in enumerate(prompts):
             t0 = time.time()
             try:
                 reply = self.target.send(p)
                 error = None
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - target may raise anything
+                log.debug("target send failed: %s", e)
                 reply, error = "", f"{type(e).__name__}: {e}"
             verdict = (
                 self._judge(goal, reply) if not error

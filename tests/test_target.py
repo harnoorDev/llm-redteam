@@ -1,11 +1,11 @@
 """Unit tests for the OpenAI-compatible target adapter."""
 import json
+
 import httpx
 import pytest
 import respx
 
 from redteam.target import OpenAICompatTarget, TargetError
-
 
 BASE = "http://localhost:11434/v1"
 

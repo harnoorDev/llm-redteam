@@ -70,7 +70,7 @@ class OOBCollector:
     # ------------------------------------------------------------ canaries
 
     def canary_url(self, probe_id: str) -> str:
-        token = secrets.token_hex(4)
+        _token = secrets.token_hex(4)
         return f"http://{self.host}:{self.port}/canary/{probe_id}/{token_hex()}/{token_hex()}"
 
     def canary_path(self, probe_id: str) -> str:

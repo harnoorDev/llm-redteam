@@ -6,6 +6,10 @@ rotation so the campaign never stalls on the mentor itself.
 """
 from __future__ import annotations
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class Mentor:
     def __init__(self, model=None, fallback_strategy: str = "babel"):
@@ -34,7 +38,8 @@ class Mentor:
         try:
             send = getattr(self.model, "send", None)
             out = (send(prompt) or "").strip() if callable(send) else ""
-        except Exception:
+        except Exception as e:  # noqa: BLE001 - model may raise anything
+            log.debug("mentor call failed: %s", e)
             out = ""
 
         strat, rationale = None, ""
@@ -45,8 +50,8 @@ class Mentor:
                     # tolerate prose ("switch to X", "try X") — grab the
                     # first token that looks like a strategy name
                     tokens = val.replace(",", " ").split()
-                    for t in tokens:
-                        t = t.strip(".;")
+                    for raw in tokens:
+                        t = raw.strip(".;")
                         if any(k in t.lower() for k in
                                ("mutate:", "transfer:", "+")) or \
                                 t.lower() in ("babel", "godmode",

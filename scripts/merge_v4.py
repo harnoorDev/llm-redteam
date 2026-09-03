@@ -34,8 +34,10 @@ def to_result(d: dict) -> RunResult:
 
 
 def main() -> None:
-    g1 = json.load(open("runs/glm53-v4-goal1-restore.json"))
-    g2 = json.load(open("runs/glm53-v4-hardened.json"))
+    with open("runs/glm53-v4-goal1-restore.json") as fh:
+        g1 = json.load(fh)
+    with open("runs/glm53-v4-hardened.json") as fh:
+        g2 = json.load(fh)
 
     objs = []
     seen = set()

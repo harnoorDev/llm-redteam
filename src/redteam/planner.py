@@ -8,6 +8,10 @@ the moment full compliance lands.
 """
 from __future__ import annotations
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class CampaignPlanner:
     """Static planner: staged phases with budgets. Memory-aware."""
@@ -57,7 +61,8 @@ class CampaignPlanner:
         try:
             hits = self.memory.recall(
                 f"{self.target_model or ''} {goal}", limit=2)
-        except Exception:
+        except Exception as e:  # noqa: BLE001 - memory backend must not break planning
+            log.debug("memory recall failed: %s", e)
             return base
         winners = [h["strategy"] for h in hits if h.get("grade") == "full"]
         return list(dict.fromkeys(winners + base))

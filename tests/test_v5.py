@@ -1,10 +1,6 @@
 """v5 tests: concurrent execution, judge panel, evolutionary attacker, CLI wiring."""
-import json
 import threading
 import time
-
-import pytest
-
 
 # --- concurrency (sliver-style worker pool) -----------------------------------
 
@@ -104,8 +100,8 @@ def test_judge_panel_any_mode_maximizes_hits():
 
 
 def test_panel_records_dissent():
-    from redteam.panel import JudgePanel
     from redteam.judge import GRADED_PROMPT, Judge
+    from redteam.panel import JudgePanel
 
     class Fixed:
         def __init__(self, v):

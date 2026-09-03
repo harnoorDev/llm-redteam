@@ -1,5 +1,5 @@
 """Tests for the hybrid success judge: regex heuristics + LLM-as-judge."""
-from redteam.judge import Judge, JudgeResult, load_judge_config
+from redteam.judge import Judge, load_judge_config
 
 # --- refusal heuristics -------------------------------------------------------
 

@@ -5,9 +5,6 @@ summarizer, task_assignment_wrapper) adapted to LLM red-team campaigns.
 """
 import json
 
-import pytest
-
-
 # --- attack memory (PentAGI memorist, anonymized-institutional style) ----------
 
 

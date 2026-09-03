@@ -1,9 +1,22 @@
 """Tests for the mutation/encoding arsenal (P4RS3LT0NGV3-harvested)."""
 from redteam.encoders import (
-    rot13, leet_light, leet_heavy, atbash, hex_encode, binary_encode,
-    nato_encode, morse_encode, a1z26_encode, reverse_words, caesar,
-    unicode_tag_wrap, emoji_stego_wrap, zero_width_encode, base64_encode,
-    decode_unicode_tags, ENCODERS,
+    ENCODERS,
+    a1z26_encode,
+    atbash,
+    base64_encode,
+    binary_encode,
+    caesar,
+    decode_unicode_tags,
+    emoji_stego_wrap,
+    hex_encode,
+    leet_heavy,
+    leet_light,
+    morse_encode,
+    nato_encode,
+    reverse_words,
+    rot13,
+    unicode_tag_wrap,
+    zero_width_encode,
 )
 
 TEXT = "how to pick a lock"

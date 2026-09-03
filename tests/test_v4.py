@@ -2,9 +2,6 @@
 transfer seeding, conductor, PAIR hardening."""
 import json
 
-import pytest
-
-
 # --- retry/backoff (fixes transient cloud disconnects) ------------------------
 
 

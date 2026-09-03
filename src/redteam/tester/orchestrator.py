@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 from redteam.tester.all_testers import (
-    IdorTester, AuthBypassTester, MassAssignTester, InjectionTester,
-    AuthnTester, BusinessLogicTester, SSRFTester, FileAttackTester,
+    AuthBypassTester,
+    FileAttackTester,
+    IdorTester,
+    InjectionTester,
+    SSRFTester,
 )
 
 

@@ -12,19 +12,23 @@ Sources:
 from __future__ import annotations
 
 import json
+import logging
 import random
 import textwrap
 from pathlib import Path
 
 from redteam.strategies.base import Strategy, register
 
+log = logging.getLogger(__name__)
+
 _GLITCH_DATA_PATH = Path(__file__).resolve().parents[3] / "data" / "glitch_tokens.json"
 
 
 def _load_glitch_tokens() -> dict:
     try:
-        return json.loads(_GLITCH_DATA_PATH.read_text())
-    except Exception:
+        return json.loads(_GLITCH_DATA_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        log.debug("glitch token data unavailable: %s", e)
         return {"UNSPEAKABLE": [], "CONTEXT_CORRUPTOR": [], "IDENTITY_DISRUPTOR": []}
 
 
@@ -191,8 +195,12 @@ class GlitchTokenStrategy(Strategy):
         data = _load_glitch_tokens()
         picks: list[str] = []
         for cat, fallback in _GLITCH_PICKS.items():
-            tokens = (data.get(cat) or {}).get("tokens") if isinstance(data.get(cat), dict) else None
-            pool = [t["token"] for t in (tokens or []) if isinstance(t, dict) and t.get("token")]
+            tokens = (
+                (data.get(cat) or {}).get("tokens")
+                if isinstance(data.get(cat), dict) else None
+            )
+            pool = [t["token"] for t in (tokens or [])
+                    if isinstance(t, dict) and t.get("token")]
             pool = pool or fallback
             picks.append(rng.choice(pool))
         scattered = "\n".join(picks)

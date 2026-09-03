@@ -4,7 +4,7 @@ import json
 import pytest
 import yaml
 
-from redteam.cli import main, load_config
+from redteam.cli import load_config, main
 
 
 def test_load_config_minimal_defaults(tmp_path):
@@ -38,8 +38,8 @@ def test_cli_strategies_subcommand(capsys):
 
 
 def test_cli_report_subcommand_renders_html(tmp_path, capsys):
-    from tests.test_report import _sample_results
     from redteam.reporting.report import build_report
+    from tests.test_report import _sample_results
     rep = build_report(_sample_results(), meta={"target": "m"})
     jp = tmp_path / "run.json"
     jp.write_text(json.dumps(rep))
@@ -73,9 +73,9 @@ def test_cli_run_with_mock_http(tmp_path):
         rc = main(["run", "-c", str(cfg_file)])
     assert rc == 0
     runs = tmp_path / "runs"
-    jsons = list(runs.glob("*.json"))
+    jsons = [p for p in runs.glob("*.json") if not p.name.startswith("coverage")]
     assert jsons, "run should write a JSON report"
-    rep = json.loads(jsons[0].read_text())
+    rep = json.loads(jsons[0].read_text(encoding="utf-8"))
     assert rep["summary"]["total_probes"] == 1
     assert rep["summary"]["successful_probes"] == 1  # goal echo → success
     assert (tmp_path / "runs" / "unittest.html").exists()

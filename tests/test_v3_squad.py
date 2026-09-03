@@ -1,5 +1,4 @@
 """Tests for coverage ledger, agent swarm, risk scorer, injection suites."""
-import json
 
 
 # --- coverage ledger (strix) ---------------------------------------------------

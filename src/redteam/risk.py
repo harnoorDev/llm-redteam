@@ -29,7 +29,7 @@ class RiskScorer:
         ranked = sorted(scored, key=lambda f: (weight[f["severity"]],
                                                f.get("id", "")))
         tiers = ["P1", "P1", "P2", "P3", "P4"]
-        for i, r in enumerate(ranked):
+        for r in ranked:
             r["priority"] = tiers[weight[r["severity"]]]
         return ranked
 

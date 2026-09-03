@@ -21,14 +21,14 @@ class RunState:
 
     @classmethod
     def new(cls, run_id: str, goals: list[str], strategies: list[str],
-            state_dir: str = "runs") -> "RunState":
+            state_dir: str = "runs") -> RunState:
         os.makedirs(state_dir, exist_ok=True)
         path = os.path.join(state_dir, f".state-{run_id}.json")
         return cls(run_id, goals, strategies, path=path)
 
     @classmethod
-    def load(cls, path: str) -> "RunState":
-        with open(path, "r", encoding="utf-8") as f:
+    def load(cls, path: str) -> RunState:
+        with open(path, encoding="utf-8") as f:
             d = json.load(f)
         done = {(g, s) for g, s in d.get("done", [])}
         return cls(d["run_id"], d["goals"], d["strategies"], done=done, path=path)

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 VALID_OUTCOMES = (
     "reported",
@@ -40,7 +40,7 @@ class CoverageLedger:
             raise ValueError(f"outcome {outcome!r} requires evidence")
         entry = {
             "entry_id": uuid.uuid4().hex[:6],
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "goal": goal,
             "strategy": strategy,
             "outcome": outcome,
@@ -65,8 +65,8 @@ class CoverageLedger:
             json.dump(self._entries, f, indent=1)
 
     @classmethod
-    def load(cls, path: str) -> "CoverageLedger":
+    def load(cls, path: str) -> CoverageLedger:
         cov = cls()
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             cov._entries = json.load(f)
         return cov

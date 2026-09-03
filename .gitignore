@@ -30,3 +30,8 @@ coverage-*.json
 *.local.yaml
 secrets/
 .env.local
+.coverage
+htmlcov/
+
+# context-mem
+.context-mem/

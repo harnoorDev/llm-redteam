@@ -1,5 +1,4 @@
 """API key resolution: provider-default env vars, not just REDTEAM_TARGET_API_KEY."""
-import os
 
 from redteam.cli import _resolve_api_key
 

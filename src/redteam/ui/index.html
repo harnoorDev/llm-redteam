@@ -9,33 +9,56 @@
 </head>
 <body>
 <div class="bg-grid"></div>
+
+<!-- mobile topbar -->
+<div class="topbar">
+  <button class="topbar-toggle" id="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+  <span class="brand-logo" aria-hidden="true">🐉</span>
+  <span class="brand-name">REDTEAM<span class="accent">.STUDIO</span></span>
+</div>
+
 <div class="app">
   <!-- ============ SIDEBAR ============ -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
     <div class="brand">
-      <span class="brand-logo">🐉</span>
+      <span class="brand-logo" aria-hidden="true">🐉</span>
       <div>
         <div class="brand-name">REDTEAM<span class="accent">.STUDIO</span></div>
         <div class="brand-sub">hermes agent harness</div>
       </div>
     </div>
     <nav class="nav">
-      <a data-view="dashboard" class="nav-item active"><span>⚡</span> Dashboard</a>
-      <a data-view="launch" class="nav-item"><span>🚀</span> Launch</a>
-      <a data-view="jobs" class="nav-item"><span>🎛</span> Job Control <span id="nav-jobs-badge" class="badge" hidden>0</span></a>
-      <a data-view="history" class="nav-item"><span>📚</span> History</a>
-      <a data-view="memory" class="nav-item"><span>🧠</span> Memory</a>
-      <a data-view="findings" class="nav-item"><span>🕵</span> App Findings</a>
+      <button data-view="dashboard" class="nav-item active"><span class="ico" aria-hidden="true">⚡</span> Dashboard</button>
+      <button data-view="launch" class="nav-item"><span class="ico" aria-hidden="true">🚀</span> Launch</button>
+      <button data-view="jobs" class="nav-item"><span class="ico" aria-hidden="true">🎛</span> Job Control <span id="nav-jobs-badge" class="badge" hidden>0</span></button>
+      <button data-view="history" class="nav-item"><span class="ico" aria-hidden="true">📚</span> History</button>
+      <button data-view="memory" class="nav-item"><span class="ico" aria-hidden="true">🧠</span> Memory</button>
+      <button data-view="findings" class="nav-item"><span class="ico" aria-hidden="true">🕵</span> App Findings</button>
+      <button data-view="validate" class="nav-item"><span class="ico" aria-hidden="true">🎯</span> Validate</button>
     </nav>
     <div class="sidebar-footer">
-      <div class="pulse-dot"></div>
-      <span id="backend-status">connecting…</span>
+      <div class="pulse-dot off" id="pulse"></div>
+      <span id="backend-status" aria-live="polite">connecting…</span>
     </div>
   </aside>
 
   <!-- ============ MAIN ============ -->
-  <main id="main"></main>
+  <main id="main" tabindex="-1"></main>
 </div>
+
+<!-- modal + toast mounts -->
+<div class="modal-root" id="modal-root" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+  <div class="backdrop" data-close></div>
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Details</h3>
+      <button class="modal-close" data-close aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
 <script src="/ui/app.js"></script>
 </body>
 </html>

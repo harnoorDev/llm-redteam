@@ -11,12 +11,15 @@ Duplicates (vector, endpoint) are suppressed per session.
 from __future__ import annotations
 
 import hashlib
+import logging
+import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
+log = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────── request primitive
 
@@ -38,7 +41,8 @@ def _http(url: str, headers: dict | None = None, timeout: int = 8) -> dict:
                 "latency_ms": round((time.time() - t0) * 1000, 2),
                 "body": body,
                 "sha": hashlib.sha256(body.encode()).hexdigest()[:16]}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - network boundary
+        log.debug("http probe failed: %s", e)
         return {"status": 0, "latency_ms": 0.0, "body": str(e), "sha": ""}
 
 
@@ -101,9 +105,6 @@ class BaseProxyTester:
                 "baseline": {"status": baseline["status"], "sha": baseline["sha"]},
                 "attack": {"status": attack["status"], "sha": attack["sha"]},
             })
-
-
-import threading
 
 
 @dataclass

@@ -11,12 +11,15 @@ Everything zero-dep (urllib). Non-destructive: GET probes only.
 """
 from __future__ import annotations
 
+import logging
 import re
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
 
 from redteam.scope import ScopeGuard
+
+log = logging.getLogger(__name__)
 
 SECURITY_HEADERS = {
     "strict-transport-security": "HSTS",
@@ -65,7 +68,8 @@ class Scout:
                 return r.status, dict(r.headers), r.read()
         except urllib.error.HTTPError as e:
             return e.code, dict(e.headers), (e.read() or b"")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - network boundary
+            log.debug("scout request failed: %s", e)
             return 0, {}, str(e).encode()
 
     # ------------------------------------------------------------- phases

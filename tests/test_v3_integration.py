@@ -1,9 +1,6 @@
 """Tests for v3 runner integration: extraction battery, verification, resume,
 markdown engagement reports, workspaces."""
-import json
 
-import pytest
-import yaml
 
 
 # --- extraction battery expands at run level --------------------------------
@@ -109,8 +106,10 @@ def test_findings_have_severity_and_owasp(tmp_path):
 
 
 def test_config_supports_scope_and_verification():
+    import os
+    import tempfile
+
     from redteam.cli import load_config
-    import tempfile, os
 
     cfg_text = """
 target:

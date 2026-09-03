@@ -5,11 +5,11 @@ active checks with zero external deps; optional native-tool drivers
 (nmap/nuclei/etc) auto-detected from PATH. All behind the ScopeGuard.
 """
 import json
+import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
-
 
 # --- test app: deliberately vulnerable endpoints -------------------------------
 
@@ -50,7 +50,7 @@ class VulnHandler(BaseHTTPRequestHandler):
             # open redirect
             loc = "https://evil.example/" if "evil" in self.path else "/"
             self.send_response(302)
-            self.send_header("Location", loc)  # noqa
+            self.send_header("Location", loc)
             self.end_headers()
         else:
             self.send_response(404)
@@ -72,8 +72,8 @@ def app_url():
 # --- guard integration ----------------------------------------------------------
 
 def test_app_checks_respect_scope_guard():
-    from redteam.scope import ScopeGuard
     from redteam.app.scout import Scout
+    from redteam.scope import ScopeGuard
 
     guard = ScopeGuard({"allowed_hosts": ["127.0.0.1"],
                         "declaration": "local test"})
@@ -138,9 +138,9 @@ def test_scanner_flags_missing_auth_and_headers(app_url):
 
 
 def test_scanner_flags_sensitive_data_exposure(app_url):
+
     from redteam.app.scout import Scout
     from redteam.scope import ScopeGuard
-    import re
 
     guard = ScopeGuard({"allowed_hosts": ["127.0.0.1"],
                         "declaration": "local test"})
@@ -171,7 +171,7 @@ def test_registry_lists_and_runs_httpx_driver(app_url):
 
     reg = ToolRegistry()
     assert "curl" in reg.available()   # curl is on this box
-    out = reg.run("curl", [app_url, "-s", "-o", "/dev/null",
+    out = reg.run("curl", [app_url, "-s", "-o", os.devnull,
                            "-w", "%{http_code}"])
     assert out["returncode"] == 0
     assert out["stdout"].strip() in ("200", "301", "302", "404")
@@ -190,8 +190,8 @@ def test_registry_missing_tool_is_not_fatal():
 
 
 def test_app_campaign_runs_and_reports(app_url):
-    from redteam.scope import ScopeGuard
     from redteam.app.campaign import AppCampaign
+    from redteam.scope import ScopeGuard
 
     guard = ScopeGuard({"allowed_hosts": ["127.0.0.1"],
                         "declaration": "local test"})

@@ -46,10 +46,12 @@ def list_strategies() -> list[str]:
 
 def _ensure_loaded() -> None:
     # Import for side effects (registration). Kept local to avoid cycles.
-    from redteam.strategies import families    # noqa: F401
-    from redteam.strategies import pliny       # noqa: F401
-    from redteam.strategies import v4_families  # noqa: F401
-    from redteam import families_v3            # noqa: F401
+    from redteam import families_v3  # noqa: F401
+    from redteam.strategies import (
+        families,  # noqa: F401
+        pliny,  # noqa: F401
+        v4_families,  # noqa: F401
+    )
 
 
 def resolve_stack(spec: str, goal: str) -> str | list[str]:

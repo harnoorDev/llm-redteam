@@ -1,8 +1,6 @@
 """Tests for the probe runner: goal x strategy orchestration."""
-import pytest
 
 from redteam.runner import Runner, RunResult
-from redteam.strategies.base import get_strategy
 
 
 class ScriptedTarget:

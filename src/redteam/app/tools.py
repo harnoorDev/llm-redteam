@@ -50,8 +50,8 @@ class ToolRegistry:
                     "stdout": "", "stderr": "tool not installed"}
         try:
             proc = subprocess.run(
-                [name] + list(args), capture_output=True, text=True,
-                timeout=timeout_s)
+                [name, *args], capture_output=True, text=True,
+                timeout=timeout_s, check=False)
             return {"available": True, "name": name,
                     "returncode": proc.returncode,
                     "stdout": proc.stdout, "stderr": proc.stderr}

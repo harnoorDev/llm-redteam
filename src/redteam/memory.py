@@ -55,7 +55,7 @@ class AttackMemory:
 
     def _load(self) -> list[dict]:
         if self.path.exists():
-            with open(self.path, "r", encoding="utf-8") as f:
+            with open(self.path, encoding="utf-8") as f:
                 return json.load(f)
         return []
 
