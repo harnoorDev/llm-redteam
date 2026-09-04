@@ -91,8 +91,8 @@ def main() -> None:
         mcp = _build_server()
     except ImportError as e:
         raise SystemExit(
-            f"mcp package not installed ({e}); install with: "
-            "uv pip install '.[mcp]' or pip install 'llm-redteam[mcp]'"
+            f"the MCP server needs its extra ({e}); install it with:\n"
+            "  uv pip install 'llm-redteam[mcp]'   (or '.[mcp]' from a clone)"
         ) from e
     mcp.run()
 

@@ -239,7 +239,7 @@ def test_mcp_server_missing_package(monkeypatch):
     import redteam.mcp_server as ms
     importlib.reload(ms)
     try:
-        with pytest.raises(SystemExit, match="mcp package"):
+        with pytest.raises(SystemExit, match="needs its extra"):
             ms.main()
     finally:
         monkeypatch.undo()
