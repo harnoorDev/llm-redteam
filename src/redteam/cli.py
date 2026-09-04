@@ -32,7 +32,11 @@ def load_config(path: str) -> dict:
     mode_hb = cfg.get("harmbench") is not None
 
     problems = []
-    if not mode_app and not mode_hb:
+    mode_http = (cfg.get("target", {}).get("type") or "").lower() in (
+        "http", "raw", "raw_http")
+    if mode_http and not cfg.get("target", {}).get("model"):
+        cfg["target"]["model"] = "(http)"   # reports key off this label
+    if not mode_app and not mode_hb and not mode_http:
         if not cfg.get("target", {}).get("base_url"):
             problems.append("target.base_url is required "
                             "(e.g. http://localhost:11434/v1)")
@@ -67,6 +71,24 @@ def load_config(path: str) -> dict:
                   f"from {transfer_from}")
         except FileNotFoundError:
             print(f"warning: transfer_from file not found: {transfer_from}")
+
+    # LLM-backed converters rewrite a request's framing rather than its
+    # characters (past tense, clinical register, low-resource translation).
+    # Binding a model here registers them as ordinary mutations, so
+    # `mutate:tense_past` and stacks work with no special-casing downstream.
+    conv = cfg.get("converters") or {}
+    if conv.get("model"):
+        from redteam.converters import register_llm_converters
+        from redteam.target import OpenAICompatTarget
+        cmodel = OpenAICompatTarget(
+            base_url=conv.get("base_url") or cfg["target"]["base_url"],
+            model=conv["model"],
+            api_key=_resolve_api_key(conv.get("api_key")),
+            temperature=conv.get("temperature", 0.9),
+        )
+        names = register_llm_converters(cmodel, conv.get("enable"))
+        print(f"llm converters: {len(names)} registered "
+              f"({', '.join(names[:4])}{'...' if len(names) > 4 else ''})")
 
     cfg.setdefault("strategies", default_set)
     # Baseline probe. `direct` sends the raw goal with nothing applied, so its
@@ -104,7 +126,26 @@ def _resolve_api_key(config_key: str | None) -> str | None:
     return None
 
 
-def _build_target(tc: dict) -> OpenAICompatTarget:
+def _build_target(tc: dict):
+    """Build a target from config. `type: http` attacks any HTTP app."""
+    if (tc.get("type") or "").lower() in ("http", "raw", "raw_http"):
+        from redteam.targets_http import RawHTTPTarget
+        raw = tc.get("raw_request")
+        if not raw and tc.get("raw_request_file"):
+            with open(tc["raw_request_file"], encoding="utf-8") as f:
+                raw = f.read()
+        if not raw:
+            print("config error: target.type http needs raw_request or "
+                  "raw_request_file", file=sys.stderr)
+            raise SystemExit(2)
+        return RawHTTPTarget(
+            raw_request=raw,
+            base_url=tc.get("base_url", ""),
+            response_path=tc.get("response_path"),
+            response_regex=tc.get("response_regex"),
+            timeout_s=float(tc.get("timeout_s", 60)),
+            verify=bool(tc.get("verify_tls", True)),
+        )
     return OpenAICompatTarget(
         base_url=tc["base_url"],
         model=tc["model"],

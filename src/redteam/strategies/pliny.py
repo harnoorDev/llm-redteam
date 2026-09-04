@@ -323,8 +323,24 @@ def _register_mutations() -> None:
         )
         return MutateStrategy
 
-    for enc_name, fn in ENCODERS.items():
+    def _make_one(enc_name, fn):
         register(_make(enc_name, fn))
+
+    _register_mutations._make_one = _make_one  # type: ignore[attr-defined]
+
+    for enc_name, fn in ENCODERS.items():
+        _make_one(enc_name, fn)
+
+
+def register_mutation(name: str, fn) -> str:
+    """Register one `mutate:<name>` strategy for an encoder added at runtime.
+
+    The mutation strategies are built from ENCODERS when this module loads, so
+    an encoder registered later (an LLM-backed converter, say) has no strategy
+    unless one is created for it explicitly.
+    """
+    _register_mutations._make_one(name, fn)  # type: ignore[attr-defined]
+    return f"mutate:{name}"
 
 
 _register_mutations()
