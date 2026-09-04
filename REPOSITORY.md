@@ -18,8 +18,9 @@ the map between them.
 | **Surfaces** | 9 CLI commands · 9 Studio views · 5 MCP tools |
 | **Arsenal** | 69 attack strategies · 42 mutation encoders · 40 benchmark behaviors |
 | **App testing** | 8 proxy testers on a 3-gate evidence protocol |
-| **Tests** | 211 tests, 80% coverage (2 require the `[mcp]` extra) |
+| **Tests** | 216 tests, 81% coverage |
 | **Tooling** | `uv` · `pytest` + `pytest-cov` · `ruff` |
+| **Install** | 8 packages core; `[studio]` 21, `[mcp]` 33, `[all]` 40 |
 
 **Design stance.** Attacks are *rendered offline and fired deliberately*.
 Nothing probes a target without an operator-written authorization declaration,
@@ -77,10 +78,15 @@ llm-redteam/
 │   ├── ui_server.py            # FastAPI backend: 18 endpoints + job engine
 │   ├── ui/                     # Studio frontend (index.html, app.js, style.css)
 │   ├── studio_cli.py           # `redteam-studio` launcher
-│   └── mcp_server.py           # `redteam-mcp` — arsenal over Model Context Protocol
+│   ├── mcp_server.py           # `redteam-mcp` — arsenal over Model Context Protocol
+│   └── data/                   # AGGREGLITCH catalog, loaded as a package resource
 │
-├── tests/                      # 24 test modules
-├── configs/                    # example + engagement YAML configs
+├── .claude-plugin/             # Claude Code plugin + marketplace manifests
+├── .mcp.json                   # project-scope MCP config for anyone who clones
+├── skills/redteam/SKILL.md     # usage skill shipped with the plugin
+│
+├── tests/                      # 25 test modules
+├── configs/                    # one starter config per mode + annotated reference
 ├── runs/                       # output artifacts (gitignored)
 └── docs: README · USAGE · ARCHITECTURE · SAFETY · CONTRIBUTING · REPOSITORY
 ```
@@ -182,6 +188,12 @@ contact a target.
 uv pip install '.[mcp]'
 uv run redteam-mcp
 ```
+
+Installable into any MCP client. Claude Code users can take the whole thing as a
+plugin (`/plugin marketplace add harnoorDev/llm-redteam`), which brings the
+server plus a usage skill; see the README for Codex, Cursor and Desktop configs.
+The repo ships `.mcp.json`, so cloning it and opening Claude Code there is
+enough to get the tools.
 
 Five offline tools for any MCP client: `list_strategies`, `render_attack(goal,
 strategy)` (accepts stacks), `encode(text, encoder)`, `decode_unicode_tags(text)`,

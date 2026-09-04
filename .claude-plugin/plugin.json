@@ -1,0 +1,23 @@
+{
+  "name": "hermes-redteam",
+  "description": "LLM and web-app red-teaming arsenal: 69 attack strategies, 42 mutation encoders, and offline payload rendering. Exposes the Hermes RedTeam harness as MCP tools that never contact a target.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Harnoor Singh",
+    "url": "https://github.com/harnoorDev"
+  },
+  "homepage": "https://github.com/harnoorDev/llm-redteam",
+  "repository": "https://github.com/harnoorDev/llm-redteam",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "red-team",
+    "jailbreak",
+    "llm-security",
+    "ai-safety",
+    "pentest",
+    "owasp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.claude-plugin/mcp.json"
+}

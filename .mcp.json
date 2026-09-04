@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "hermes-redteam": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--extra", "mcp", "redteam-mcp"]
+    }
+  }
+}

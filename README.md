@@ -2,7 +2,7 @@
 
 **Full-spectrum red-team harness for LLMs and web applications.**
 
-[![tests](https://img.shields.io/badge/tests-208%20passing-brightgreen)]()
+[![tests](https://img.shields.io/badge/tests-216%20passing-brightgreen)]()
 [![python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![license](https://img.shields.io/badge/license-MIT-green)]()
 
@@ -99,6 +99,63 @@ Everything else is opt-in:
 
 ---
 
+## Use it from your AI agent
+
+The arsenal is exposed over MCP as five **offline** tools — render any jailbreak
+payload, apply any of the 42 mutations, decode hidden Unicode-tag smuggling.
+None of them contacts a target; firing at a live endpoint stays on the CLI,
+deliberately.
+
+### Claude Code — as a plugin (recommended)
+
+Installs the MCP server *and* a usage skill in one step:
+
+```
+/plugin marketplace add harnoorDev/llm-redteam
+/plugin install hermes-redteam@hermes-redteam
+```
+
+### Claude Code — MCP server only
+
+```bash
+claude mcp add --transport stdio hermes-redteam -- uvx --from 'llm-redteam[mcp]' redteam-mcp
+```
+
+Or, from a clone, drop this in `.mcp.json` — already committed here, so cloning
+the repo and opening it in Claude Code is enough:
+
+```json
+{
+  "mcpServers": {
+    "hermes-redteam": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--extra", "mcp", "redteam-mcp"]
+    }
+  }
+}
+```
+
+### Codex
+
+Codex reads TOML, not JSON. In `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.hermes-redteam]
+command = "uvx"
+args = ["--from", "llm-redteam[mcp]", "redteam-mcp"]
+```
+
+### Cursor, Windsurf, Claude Desktop
+
+Same shape as the Claude Code JSON above, in each app's MCP config file.
+
+> The `uvx` forms need the package on PyPI. Until then, use the clone-based
+> `uv run --extra mcp redteam-mcp` command — it is what the committed
+> `.mcp.json` and the plugin both use, and it works today.
+
+---
+
 ## Architecture
 
 ```
@@ -115,8 +172,8 @@ Everything else is opt-in:
 │  campaign─ recon → battery → adapt (refiner+mentor) → evolve    │
 │  app ───── 8 proxy testers, 3-gate evidence protocol            │
 ├─────────────────────────────────────────────────────────────────┤
-│                    Strategy Registry (35+)                      │
-│  classic (7) · pliny (9) · bughunter (3) · mutations (15)       │
+│                    Strategy Registry (69)                       │
+│  classic (7) · pliny (51) · v5 (6) · v3 (3) · multimodal (1)    │
 │  composition via ‘+’ · transfer: seeding from past runs         │
 ├─────────────────────────────────────────────────────────────────┤
 │                    Safety & Evidence Layer                      │

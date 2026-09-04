@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "hermes-redteam",
+  "metadata": {
+    "description": "Hermes RedTeam — full-spectrum LLM and web-app red-team harness, as an MCP server plus a usage skill."
+  },
+  "owner": {
+    "name": "Harnoor Singh",
+    "url": "https://github.com/harnoorDev"
+  },
+  "plugins": [
+    {
+      "name": "hermes-redteam",
+      "description": "69 attack strategies and 42 mutation encoders for LLM red-teaming, exposed as offline MCP tools: render any jailbreak payload, apply any mutation, and decode hidden Unicode-tag smuggling — without contacting a target.",
+      "version": "1.0.0",
+      "source": "./",
+      "category": "security",
+      "homepage": "https://github.com/harnoorDev/llm-redteam",
+      "tags": ["security", "red-team", "jailbreak", "llm-security", "ai-safety"]
+    }
+  ]
+}
