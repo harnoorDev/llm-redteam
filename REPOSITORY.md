@@ -295,6 +295,4 @@ TAP; many-shot jailbreaking — Anthropic) and community arsenals
 (elder-plinius/L1B3RT4S, P4RS3LT0NGV3 encoders, Claude-BugHunter probes, PentAGI
 orchestration patterns, CyberStrike proxy-tester taxonomy, strix coverage ledger,
 shannon report formats). All implementations are original — see
-[ARCHITECTURE.md](ARCHITECTURE.md) for the full derivation map and
-[WALLBREAKER_COMPARISON.md](WALLBREAKER_COMPARISON.md) for the feature-by-feature
-comparison that drove the v5 work.
+[ARCHITECTURE.md](ARCHITECTURE.md) for the full derivation map.
