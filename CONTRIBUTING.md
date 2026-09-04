@@ -5,7 +5,7 @@ Thanks for your interest. This project follows a few firm rules.
 ## The iron laws
 
 1. **TDD** — no production code without a failing test first
-   (RED → GREEN → REFACTOR). 156 tests currently pass; keep them green.
+   (RED → GREEN → REFACTOR). 217 tests currently pass; keep them green.
 2. **Scope guard is sacred** — never weaken `ScopeGuard`, never auto-generate
    `scope.declaration`, never bypass it in tests by disabling real checks.
 3. **Findings need evidence** — new testers must follow the 3-gate protocol
@@ -16,8 +16,8 @@ Thanks for your interest. This project follows a few firm rules.
 ```bash
 git clone https://github.com/harnoorsingh/llm-redteam.git
 cd llm-redteam
-uv sync
-uv run pytest -q          # 156 passed
+uv sync --group dev       # dev group pulls the studio + mcp extras
+uv run pytest -q          # 217 passed
 uv run redteam strategies # registry sanity
 ```
 

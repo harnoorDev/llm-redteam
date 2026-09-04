@@ -31,7 +31,7 @@ combines the best published techniques into one coherent workflow.
 | **69 attack strategies** | 7 classic (roleplay, fiction, crescendo, encoding...) + Pliny/L1B3RT4S harvest (godmode, dataset_seed, token_spoof, many_shot, babel, glitch_token...) + BugHunter extraction batteries + system-role shadowing + WallBreaker-parity families (cipherchat, skeleton_key, persuasion_attack, native_mimic, code_switch, misinfo_correction) |
 | **Multimodal** | `image_edit` renders the goal into a PNG and attacks through the image channel (Pillow optional — pure-Python PNG fallback) |
 | **Composition** | Stack strategies (`godmode+refusal_suppression`), wrap in mutations (`mutate:leetspeak`, `mutate:unicode_tags` — **42 encoders** from P4RS3LT0NGV3) |
-| **7 execution modes** | `run` (battery), `pair` (PAIR iterative), `evolve` (TAP-style evolutionary), `campaign` (recon→battery→adapt→evolve w/ memory), `app` (web-app scan), `harmbench` (standardized behavior benchmark), `converge` (universal-prompt discovery) |
+| **9 CLI commands** | `run` (battery), `pair` (PAIR iterative), `evolve` (TAP-style evolutionary), `campaign` (recon→battery→adapt→evolve w/ memory), `app` (web-app scan), `harmbench` (standardized behavior benchmark), `converge` (universal-prompt discovery) |
 | **Reliability validation** | `run --validate N` re-fires every winner N times and reports a true compliance rate with a Wilson confidence interval — a single hit is sampling noise, not a bypass |
 | **MCP server** | `redteam-mcp` exposes the arsenal (strategies, offline payload rendering, 42 encoders) to any MCP client |
 | **Graded judging** | Binary or full/partial/refused rubric; optional 3-model judge panel with majority vote + dissent recording |

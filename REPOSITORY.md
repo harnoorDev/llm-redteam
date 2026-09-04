@@ -75,7 +75,7 @@ llm-redteam/
 │   ├── app/                    # app-campaign scout, tool registry, campaign driver
 │   ├── reporting/              # JSON / HTML / Markdown report renderers
 │   │
-│   ├── ui_server.py            # FastAPI backend: 18 endpoints + job engine
+│   ├── ui_server.py            # FastAPI backend: 17 endpoints + job engine
 │   ├── ui/                     # Studio frontend (index.html, app.js, style.css)
 │   ├── studio_cli.py           # `redteam-studio` launcher
 │   ├── mcp_server.py           # `redteam-mcp` — arsenal over Model Context Protocol
@@ -158,7 +158,7 @@ Nine views: **Dashboard**, **Launch**, **Job Control**, **History**, **Memory**,
 launchable from the UI; the server shells out to the same `redteam` binary and
 streams stdout over SSE.
 
-### HTTP API (18 endpoints)
+### HTTP API (17 endpoints)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -169,9 +169,9 @@ streams stdout over SSE.
 | POST | `/api/render` | Render a payload offline (strategy, stack, mutation) |
 | GET | `/api/configs`, `/api/config/{name}` | List / read config YAML |
 | POST | `/api/runs` | Start a job (`run`, `pair`, `evolve`, `campaign`, `app`, `harmbench`) |
-| GET | `/api/jobs`, `/api/jobs/{id}` | Job list / detail with rolling output |
-| POST | `/api/jobs/{id}/stop` | Kill a running job |
-| GET | `/api/logs/{id}/stream` | SSE live tail |
+| GET | `/api/jobs`, `/api/jobs/{job_id}` | Job list / detail with rolling output |
+| POST | `/api/jobs/{job_id}/stop` | Kill a running job |
+| GET | `/api/logs/{job_id}/stream` | SSE live tail |
 | GET | `/api/history` | Indexed run reports |
 | GET | `/api/report/{name}` | Full report JSON (path-traversal guarded) |
 | GET | `/api/memory` | Winner bank |
@@ -275,7 +275,7 @@ contracted to test. Unauthorized testing is illegal.
 
 ```bash
 uv sync                     # install (add --group dev for test tooling)
-uv run pytest               # 211 tests, must clear 70% coverage
+uv run pytest               # 217 tests, must clear 70% coverage
 uv run ruff check src tests # lint
 uv run --with mcp pytest    # include the 2 MCP-gated tests
 ```

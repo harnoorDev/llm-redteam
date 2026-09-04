@@ -206,9 +206,10 @@ src/redteam/
 ├── tester/              # base + 8 proxy testers + orchestrator
 ├── app/                 # scout · tools registry · app campaign
 └── reporting/           # HTML · markdown · app markdown
-tests/                   # 156 tests (pytest, respx/pytest-httpx, live fixture servers)
-configs/                 # annotated YAML examples per mode
-data/glitch_tokens.json  # harvested token catalog
+tests/                   # 217 tests (pytest, respx/pytest-httpx, live fixture servers)
+configs/                 # one starter config per mode + annotated reference
+src/redteam/data/        # glitch-token catalog (a package resource)
+packages/llm-redteam-mcp/ # thin PyPI dist for `uvx llm-redteam-mcp`
 ```
 
 ## 7. Extension points

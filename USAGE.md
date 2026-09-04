@@ -32,19 +32,31 @@ and the Studio UI.
 
 ## Installation
 
-```bash
-# uv (recommended)
-git clone https://github.com/harnoorsingh/llm-redteam.git
-cd llm-redteam && uv sync
+**From PyPI** — pick what you need; the core is deliberately small.
 
-# pip fallback (3.11+)
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
+```bash
+uv pip install llm-redteam              # CLI + all 69 strategies (8 packages)
+uv pip install 'llm-redteam[studio]'    # + the web UI
+uv pip install 'llm-redteam[all]'       # + MCP server + Pillow
+uvx llm-redteam-mcp                     # MCP server, no install
+```
+
+**From a clone** — for development, or to get the Studio and configs:
+
+```bash
+git clone https://github.com/harnoorDev/llm-redteam.git
+cd llm-redteam
+uv sync --group dev                     # dev group pulls the studio + mcp extras
 
 # verify
-uv run redteam strategies | head        # registry loads
-uv run pytest -q                        # 156 tests
+uv run redteam strategies | head        # 69 strategies load
+uv run redteam run -c configs/smoke.yaml   # 2 probes against a local model
+uv run pytest -q                        # 217 tests
 ```
+
+The CLI needs only `httpx` and `pyyaml`. `fastapi`/`uvicorn` live in
+`[studio]`, the MCP SDK in `[mcp]`, and Pillow in `[image]` — so a plain CLI
+install stays at 8 packages instead of 40.
 
 ## Configuration
 
@@ -144,7 +156,7 @@ pair:
 hints back to the attacker each round; seeds from
 `runs/attack-memory.json` are injected as ammunition.
 
-### 3. `evolve — evolutionary
+### 3. `evolve` — evolutionary
 
 TAP-style search. Maintains a population of candidate prompts, mutates the
 best scorers, breeds across generations until a goal breaks.
@@ -372,14 +384,55 @@ before treating a rate as settled.
 
 ## MCP server
 
-Exposes the arsenal to any MCP client (Claude Code, Claude Desktop, etc.) —
-useful for rendering payloads inside another agent without giving it network
-access to your targets.
+Exposes the arsenal to any MCP client (Claude Code, Codex, Cursor, Claude
+Desktop) — useful for rendering payloads inside another agent without giving it
+network access to your targets.
 
 ```bash
-uv pip install '.[mcp]'
-uv run redteam-mcp
+uvx llm-redteam-mcp                     # run it, no install
 ```
+
+> The console script inside the main package is `redteam-mcp`, but
+> **`uvx redteam-mcp` pulls an unrelated project of that name from PyPI**.
+> Always use `uvx llm-redteam-mcp`.
+
+**Claude Code** — as a plugin, which also installs a usage skill:
+
+```
+/plugin marketplace add harnoorDev/llm-redteam
+/plugin install hermes-redteam@hermes-redteam
+```
+
+Or the server alone:
+
+```bash
+claude mcp add --transport stdio hermes-redteam -- uvx llm-redteam-mcp
+```
+
+**Codex** — `~/.codex/config.toml` (TOML, not JSON):
+
+```toml
+[mcp_servers.hermes-redteam]
+command = "uvx"
+args = ["llm-redteam-mcp"]
+```
+
+**Cursor, Windsurf, Claude Desktop** — in the app's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "hermes-redteam": {
+      "command": "uvx",
+      "args": ["llm-redteam-mcp"]
+    }
+  }
+}
+```
+
+Cloning the repo is also enough — a committed `.mcp.json` declares the server
+with a clone-relative command, so opening the repo in Claude Code picks it up
+with no publish required.
 
 | Tool | Purpose |
 |---|---|
