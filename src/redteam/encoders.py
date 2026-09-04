@@ -171,8 +171,14 @@ def base36_encode(text: str) -> str:
 
 
 def uu_encode(text: str) -> str:
+    # b2a_uu encodes at most 45 bytes per call, which is the uuencode line
+    # length; anything longer must be split into lines the same way.
     import binascii
-    return binascii.b2a_uu(text.encode()).decode().strip()
+    raw = text.encode()
+    return "\n".join(
+        binascii.b2a_uu(raw[i:i + 45]).decode().rstrip("\n")
+        for i in range(0, len(raw), 45)
+    ) or binascii.b2a_uu(b"").decode().rstrip("\n")
 
 
 def quoted_printable_encode(text: str) -> str:

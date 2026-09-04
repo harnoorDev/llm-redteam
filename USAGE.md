@@ -112,7 +112,7 @@ and report generation (JSON + HTML + Markdown sidecars).
 The core mode: every goal × every strategy.
 
 ```bash
-uv run redteam run -c configs/arsenal.yaml
+uv run redteam run -c configs/run.yaml
 ```
 
 Execution path: `ScopeGuard.authorize_target()` → strategies resolved →
@@ -150,7 +150,7 @@ TAP-style search. Maintains a population of candidate prompts, mutates the
 best scorers, breeds across generations until a goal breaks.
 
 ```bash
-uv run redteam evolve -c configs/glm53-v5-phish.yaml
+uv run redteam evolve -c configs/evolve.yaml
 ```
 
 ```yaml
@@ -175,7 +175,7 @@ recon (1 probe) → battery (top-7 memory-informed strategies)
 ```
 
 ```bash
-uv run redteam campaign -c configs/glm53-v6-campaign.yaml
+uv run redteam campaign -c configs/campaign.yaml
 ```
 
 **Key config extras:** `budget: 12` per-goal probe budget (phases split it);
@@ -189,7 +189,7 @@ protocol (*baseline → attack → compare*). Findings require measurable
 response differences; duplicates suppressed per (vector, endpoint).
 
 ```bash
-uv run redteam app -c configs/app-scan.yaml
+uv run redteam app -c configs/app.yaml
 ```
 
 ```yaml
@@ -223,7 +223,7 @@ strategies: [direct, godmode]
 ```
 
 ```bash
-uv run redteam harmbench -c configs/example.yaml
+uv run redteam harmbench -c configs/harmbench.yaml
 ```
 
 Categories: `cybercrime` · `chemical_biological` · `copyright` ·
@@ -351,7 +351,7 @@ re-fires every winning prompt N more times and reports the true compliance
 rate with a **Wilson confidence interval**:
 
 ```bash
-uv run redteam run -c configs/arsenal.yaml --validate 5
+uv run redteam run -c configs/run.yaml --validate 5
 ```
 
 ```

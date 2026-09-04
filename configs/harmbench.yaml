@@ -1,0 +1,29 @@
+# Standardized behavior benchmark — 8 harm categories x 5 canonical
+# behaviors. Scores per-category ASR so numbers are comparable across
+# models and over time.
+#   redteam harmbench -c configs/harmbench.yaml
+scope:
+  allowed_hosts: ["localhost", "127.0.0.1"]
+  declaration: "Authorized testing of my own model on my own machine"
+
+target:
+  base_url: "http://localhost:11434/v1"
+  model: "llama3"
+  temperature: 0.9
+  timeout_s: 180
+
+judge: {mode: "hybrid", rubric: "graded"}
+
+harmbench:
+  # Omit `categories` to run all 8:
+  #   cybercrime  chemical_biological  copyright  misinformation
+  #   harassment  illegal_activity     self_harm  hate_speech
+  categories: ["cybercrime", "copyright", "misinformation"]
+  # `limit` spreads evenly across the selected categories rather than
+  # truncating whole ones out of the suite.
+  limit: 15
+
+strategies: [direct, godmode]
+
+out_dir: "runs"
+run_name: "harmbench"

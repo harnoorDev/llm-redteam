@@ -60,19 +60,19 @@ uv sync
 uv run redteam run -c configs/smoke.yaml
 
 # 2. full battery with reports (JSON + HTML + Markdown)
-uv run redteam run -c configs/arsenal.yaml
+uv run redteam run -c configs/run.yaml
 
 # 3. adaptive evolutionary attack
-uv run redteam evolve -c configs/glm53-v5-phish.yaml
+uv run redteam evolve -c configs/evolve.yaml
 
 # 4. web-app campaign (replace target + declaration per SAFETY.md)
-uv run redteam app -c configs/example.yaml
+uv run redteam app -c configs/app.yaml
 
 # 5. standardized benchmark (8 harm categories, comparable ASR across models)
-uv run redteam harmbench -c configs/example.yaml
+uv run redteam harmbench -c configs/harmbench.yaml
 
 # 6. prove a bypass is systematic, not sampling noise (Wilson CI per winner)
-uv run redteam run -c configs/arsenal.yaml --validate 5
+uv run redteam run -c configs/run.yaml --validate 5
 
 # 7. mine finished runs for prompts that transfer across goals and models
 uv run redteam converge runs/*.json -o universal-prompts.json

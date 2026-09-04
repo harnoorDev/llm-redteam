@@ -1,0 +1,23 @@
+# Web-application scan — 8 proxy testers (IDOR, auth bypass, mass
+# assignment, injection, authn, business logic, SSRF, path traversal),
+# each on a 3-gate evidence protocol: baseline, attack, compare.
+# A finding only exists on a measurable difference.
+#   redteam app -c configs/app.yaml
+#
+# This mode touches a real application. Both fields below are mandatory
+# and must describe an app you own or are contracted to test.
+
+scope:
+  allowed_hosts: ["localhost", "127.0.0.1"]
+  declaration: "Authorized testing of my own application on my own machine"
+
+app_target: "http://localhost:8080"
+
+app:
+  wordlist: null            # null = built-in non-destructive path list
+  # allow_destructive: true # write-path probes; off by default, and it
+                            # means what it says — only on a target you
+                            # can restore
+
+out_dir: "runs"
+run_name: "app-scan"

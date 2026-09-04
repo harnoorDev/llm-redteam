@@ -331,7 +331,8 @@ VIEWS.launch = async () => {
   const syncMode = () => {
     const mode = $("#mode").value;
     $("#validate-field").hidden = mode !== "run";
-    const map = { campaign: "glm53-v6-campaign.yaml", app: null, run: "arsenal.yaml", pair: "pair.yaml", evolve: "glm53-v5-phish.yaml", harmbench: null };
+    // each mode's starter config, by convention named after the mode
+    const map = { run: "run.yaml", pair: "pair.yaml", evolve: "evolve.yaml", campaign: "campaign.yaml", app: "app.yaml", harmbench: "harmbench.yaml" };
     const want = map[mode];
     if (want && [...$("#config").options].some((o) => o.value === want)) { $("#config").value = want; peek(); }
   };
