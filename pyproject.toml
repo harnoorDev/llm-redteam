@@ -17,15 +17,12 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
+# Core stays deliberately small: the CLI, the full 69-strategy arsenal, the
+# judge and every report renderer need only these two. The Studio UI and the
+# MCP server are opt-in extras so `uvx` cold-starts stay fast.
 dependencies = [
-    "fastapi>=0.141.1",
-    "flask>=3.1.3",
-    "flask-cors>=6.0.5",
     "httpx>=0.27",
-    "jinja2>=3.1",
     "pyyaml>=6.0",
-    "uvicorn[standard]>=0.52.4",
-    "websockets>=17.1",
 ]
 
 [project.urls]
@@ -34,9 +31,20 @@ Documentation = "https://github.com/harnoorDev/llm-redteam#readme"
 Issues = "https://github.com/harnoorDev/llm-redteam/issues"
 
 [project.optional-dependencies]
+# Studio web UI: `redteam-studio`
+studio = [
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.52.4",
+]
+# MCP server: `redteam-mcp` (offline tools only — never contacts a target)
+mcp = ["mcp>=1.0"]
+# Sharper multimodal PNGs; a pure-Python fallback ships in-tree
 image = ["Pillow>=10.0"]
-mcp = [
+all = [
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.52.4",
     "mcp>=1.0",
+    "Pillow>=10.0",
 ]
 
 [project.scripts]
@@ -46,6 +54,10 @@ redteam-mcp = "redteam.mcp_server:main"
 
 [dependency-groups]
 dev = [
+    # the suite covers the Studio and MCP surfaces, so dev needs both extras
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.52.4",
+    "mcp>=1.0",
     "pytest>=8.0",
     "respx>=0.23",
     "pytest-httpx>=0.36.2",
@@ -63,7 +75,7 @@ where = ["src"]
 include = ["redteam*"]
 
 [tool.setuptools.package-data]
-redteam = ["ui/*"]
+redteam = ["ui/*", "data/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

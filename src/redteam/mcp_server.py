@@ -25,7 +25,16 @@ def _build_server():
     from redteam.strategies.base import get_strategy
     from redteam.strategies.base import list_strategies as _list_strategies
 
-    mcp = FastMCP("hermes-redteam")
+    # report a real version to clients instead of an empty string
+    try:
+        from importlib.metadata import version
+        _ver = version("llm-redteam")
+    except Exception:  # noqa: BLE001 - running from a source tree without metadata
+        _ver = "0.0.0+source"
+    try:
+        mcp = FastMCP("hermes-redteam", version=_ver)
+    except TypeError:  # older SDKs do not accept a version kwarg
+        mcp = FastMCP("hermes-redteam")
 
     @mcp.tool()
     def list_strategies() -> str:

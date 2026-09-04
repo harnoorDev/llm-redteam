@@ -86,8 +86,16 @@ uv run redteam-mcp
 
 Requires [uv](https://docs.astral.sh/uv/). Python 3.11+, no compiled dependencies.
 
-Optional extras: `.[image]` (Pillow — sharper multimodal PNGs; a pure-Python
-fallback ships in-tree) and `.[mcp]` (the `redteam-mcp` server).
+**Install profiles.** The core install is deliberately small — the CLI, all 69
+strategies, the judge and every report renderer need only `httpx` and `pyyaml`.
+Everything else is opt-in:
+
+| Install | Packages | Gets you |
+|---|---:|---|
+| `llm-redteam` | 8 | The `redteam` CLI and the full arsenal |
+| `llm-redteam[studio]` | 21 | Adds the `redteam-studio` web UI |
+| `llm-redteam[mcp]` | 33 | Adds the `redteam-mcp` server |
+| `llm-redteam[all]` | 40 | Everything, plus Pillow for sharper multimodal PNGs |
 
 ---
 

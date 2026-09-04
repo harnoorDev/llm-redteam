@@ -47,3 +47,28 @@ def test_strategy_metadata():
     s2 = get_strategy("roleplay")
     assert s2.is_multi_turn is False
     assert s2.description  # human-readable description non-empty
+
+
+def test_glitch_catalog_loads_as_a_package_resource():
+    """The AGGREGLITCH catalog must load from inside the package.
+
+    It used to be read via a repo-root-relative path, so every installed copy
+    silently fell back to an empty token set — 162 tokens lost, with the
+    strategy still "working" and no error anywhere.
+    """
+    from redteam.strategies.pliny import _load_glitch_tokens
+
+    data = _load_glitch_tokens()
+    assert len(data) >= 20, f"expected the full catalog, got {len(data)} buckets"
+    total = sum(len(v.get("tokens", [])) for v in data.values() if isinstance(v, dict))
+    assert total >= 100, f"expected 100+ glitch tokens, got {total}"
+
+
+def test_glitch_token_payload_contains_real_tokens():
+    from redteam.strategies.base import get_strategy
+
+    payload = get_strategy("glitch_token").payload("test goal")
+    assert "SolidGoldMagikarp" in payload or "EStreamFrame" in payload, (
+        "glitch_token rendered without any catalog token — the data file "
+        "is probably not reaching the installed package"
+    )

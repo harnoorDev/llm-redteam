@@ -15,20 +15,26 @@ import json
 import logging
 import random
 import textwrap
-from pathlib import Path
 
 from redteam.strategies.base import Strategy, register
 
 log = logging.getLogger(__name__)
 
-_GLITCH_DATA_PATH = Path(__file__).resolve().parents[3] / "data" / "glitch_tokens.json"
-
-
 def _load_glitch_tokens() -> dict:
+    """Read the AGGREGLITCH catalog that ships inside the package.
+
+    It must be loaded as a package resource, not a path relative to the repo
+    root: an installed wheel has no repo root, and a path-based lookup silently
+    yields zero tokens instead of failing loudly.
+    """
+    from importlib.resources import files
     try:
-        return json.loads(_GLITCH_DATA_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as e:
-        log.debug("glitch token data unavailable: %s", e)
+        raw = (files("redteam.data") / "glitch_tokens.json").read_text(
+            encoding="utf-8")
+        return json.loads(raw)
+    except (OSError, ModuleNotFoundError, json.JSONDecodeError) as e:
+        log.warning("glitch token catalog unavailable (%s); "
+                    "glitch_token falls back to an empty set", e)
         return {"UNSPEAKABLE": [], "CONTEXT_CORRUPTOR": [], "IDENTITY_DISRUPTOR": []}
 
 
