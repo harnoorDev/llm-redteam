@@ -13,12 +13,12 @@ the map between them.
 |---|---|
 | **What** | Full-spectrum red-team harness for LLMs and web applications |
 | **Language** | Python 3.11+ (no compiled dependencies) |
-| **Package** | `llm-redteam` v1.0.0, MIT |
-| **Entry points** | `redteam` (CLI) · `redteam-studio` (web UI) · `redteam-mcp` (MCP server) |
+| **Packages** | `llm-redteam` v1.0.0 and `llm-redteam-mcp` v1.0.0, MIT |
+| **Entry points** | `redteam` (CLI) · `redteam-studio` (web UI) · `llm-redteam-mcp` (MCP server) |
 | **Surfaces** | 9 CLI commands · 9 Studio views · 5 MCP tools |
 | **Arsenal** | 69 attack strategies · 42 mutation encoders · 40 benchmark behaviors |
 | **App testing** | 8 proxy testers on a 3-gate evidence protocol |
-| **Tests** | 216 tests, 81% coverage |
+| **Tests** | 217 tests, 81% coverage |
 | **Tooling** | `uv` · `pytest` + `pytest-cov` · `ruff` |
 | **Install** | 8 packages core; `[studio]` 21, `[mcp]` 33, `[all]` 40 |
 
@@ -81,6 +81,7 @@ llm-redteam/
 │   ├── mcp_server.py           # `redteam-mcp` — arsenal over Model Context Protocol
 │   └── data/                   # AGGREGLITCH catalog, loaded as a package resource
 │
+├── packages/llm-redteam-mcp/   # thin PyPI dist so `uvx llm-redteam-mcp` works
 ├── .claude-plugin/             # Claude Code plugin + marketplace manifests
 ├── .mcp.json                   # project-scope MCP config for anyone who clones
 ├── skills/redteam/SKILL.md     # usage skill shipped with the plugin

@@ -94,7 +94,8 @@ Everything else is opt-in:
 |---|---:|---|
 | `llm-redteam` | 8 | The `redteam` CLI and the full arsenal |
 | `llm-redteam[studio]` | 21 | Adds the `redteam-studio` web UI |
-| `llm-redteam[mcp]` | 33 | Adds the `redteam-mcp` server |
+| `llm-redteam[mcp]` | 33 | Adds the MCP server to a clone |
+| `llm-redteam-mcp` | 34 | Standalone MCP server — what `uvx llm-redteam-mcp` pulls |
 | `llm-redteam[all]` | 40 | Everything, plus Pillow for sharper multimodal PNGs |
 
 ---
@@ -118,7 +119,7 @@ Installs the MCP server *and* a usage skill in one step:
 ### Claude Code — MCP server only
 
 ```bash
-claude mcp add --transport stdio hermes-redteam -- uvx --from 'llm-redteam[mcp]' redteam-mcp
+claude mcp add --transport stdio hermes-redteam -- uvx llm-redteam-mcp
 ```
 
 Or, from a clone, drop this in `.mcp.json` — already committed here, so cloning
@@ -143,16 +144,20 @@ Codex reads TOML, not JSON. In `~/.codex/config.toml`:
 ```toml
 [mcp_servers.hermes-redteam]
 command = "uvx"
-args = ["--from", "llm-redteam[mcp]", "redteam-mcp"]
+args = ["llm-redteam-mcp"]
 ```
 
 ### Cursor, Windsurf, Claude Desktop
 
 Same shape as the Claude Code JSON above, in each app's MCP config file.
 
-> The `uvx` forms need the package on PyPI. Until then, use the clone-based
-> `uv run --extra mcp redteam-mcp` command — it is what the committed
-> `.mcp.json` and the plugin both use, and it works today.
+> **Before the PyPI publish**, the `uvx` forms above won't resolve yet — but the
+> plugin and the committed `.mcp.json` both use a clone-based `uv run` command,
+> so those two paths work today with no publish required.
+>
+> Note the console script inside this package is `redteam-mcp`, but
+> **`uvx redteam-mcp` installs an unrelated project of that name from PyPI**.
+> Always use `uvx llm-redteam-mcp`.
 
 ---
 

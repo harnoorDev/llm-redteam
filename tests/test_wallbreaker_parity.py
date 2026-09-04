@@ -282,3 +282,31 @@ def test_runresult_validation_field_roundtrip():
 
 def test_encoder_arsenal_size():
     assert len(ENCODERS) >= 40
+
+
+def test_thin_mcp_package_pins_the_main_version():
+    """packages/llm-redteam-mcp pins llm-redteam==<version>.
+
+    If the main package's version moves and the pin doesn't, a published
+    llm-redteam-mcp resolves to an older arsenal than the repo it came from.
+    """
+    import re
+    import tomllib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    main_ver = tomllib.loads(
+        (root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    thin = tomllib.loads(
+        (root / "packages" / "llm-redteam-mcp" / "pyproject.toml").read_text(
+            encoding="utf-8"))["project"]
+
+    pin = next(d for d in thin["dependencies"] if d.startswith("llm-redteam=="))
+    pinned = re.sub(r"^llm-redteam==", "", pin)
+    assert pinned == main_ver, (
+        f"thin package pins llm-redteam=={pinned} but the main package is "
+        f"{main_ver}; bump packages/llm-redteam-mcp/pyproject.toml"
+    )
+    assert thin["version"] == main_ver, (
+        f"thin package version {thin['version']} != main {main_ver}"
+    )

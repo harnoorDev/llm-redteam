@@ -37,13 +37,15 @@ studio = [
     "uvicorn[standard]>=0.52.4",
 ]
 # MCP server: `redteam-mcp` (offline tools only — never contacts a target)
-mcp = ["mcp>=1.0"]
+# 2.0 renamed FastMCP -> MCPServer; mcp_server.py handles both majors,
+# and this is the range actually tested. Deliberately bounded.
+mcp = ["mcp>=1.9,<3"]
 # Sharper multimodal PNGs; a pure-Python fallback ships in-tree
 image = ["Pillow>=10.0"]
 all = [
     "fastapi>=0.141.1",
     "uvicorn[standard]>=0.52.4",
-    "mcp>=1.0",
+    "mcp>=1.9,<3",
     "Pillow>=10.0",
 ]
 
@@ -57,7 +59,7 @@ dev = [
     # the suite covers the Studio and MCP surfaces, so dev needs both extras
     "fastapi>=0.141.1",
     "uvicorn[standard]>=0.52.4",
-    "mcp>=1.0",
+    "mcp>=1.9,<3",
     "pytest>=8.0",
     "respx>=0.23",
     "pytest-httpx>=0.36.2",

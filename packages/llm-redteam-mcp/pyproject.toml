@@ -1,0 +1,40 @@
+[project]
+name = "llm-redteam-mcp"
+version = "1.0.0"
+description = "MCP server for Hermes RedTeam: 69 LLM attack strategies and 42 mutation encoders as offline tools"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Harnoor Singh" }]
+requires-python = ">=3.11"
+keywords = ["mcp", "llm", "red-team", "jailbreak", "security", "ai-safety"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Information Technology",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+# Thin wrapper: the arsenal lives in llm-redteam, this package exists so the
+# documented command is a bare `uvx llm-redteam-mcp`, matching how essentially
+# every other Python MCP server on PyPI is invoked.
+dependencies = [
+    "llm-redteam==1.0.0",
+    # 2.0 renamed FastMCP -> MCPServer; redteam.mcp_server handles both, and
+    # this range is what has actually been tested. Not left open-ended.
+    "mcp>=1.9,<3",
+]
+
+[project.urls]
+Homepage = "https://github.com/harnoorDev/llm-redteam"
+Repository = "https://github.com/harnoorDev/llm-redteam"
+Issues = "https://github.com/harnoorDev/llm-redteam/issues"
+
+[project.scripts]
+llm-redteam-mcp = "llm_redteam_mcp:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
