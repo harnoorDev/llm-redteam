@@ -32,6 +32,21 @@ def is_retryable_error(e: Exception) -> bool:
     return any(m in msg for m in _TRANSIENT_MARKERS)
 
 
+def _scan(runner, replies: list[str]) -> list[dict]:
+    """Run the detector battery over a probe's replies."""
+    if not getattr(runner, "detectors", False) or not replies:
+        return []
+    from redteam.detectors import run_detectors
+    seen, out = set(), []
+    for r in replies:
+        for hit in run_detectors(r, runner.extra_detectors):
+            key = (hit["detector"], hit["evidence"])
+            if key not in seen:
+                seen.add(key)
+                out.append(hit)
+    return out
+
+
 def flatten_content(content) -> str:
     """Render an OpenAI content value as report-safe text.
 
@@ -64,6 +79,7 @@ class RunResult:
     __slots__ = (
         "attack_prompts",
         "attempts",
+        "detections",
         "duration_s",
         "error",
         "goal",
@@ -96,6 +112,7 @@ class RunResult:
             "duration_s": round(self.duration_s, 3) if self.duration_s else 0.0,
             "timestamp": self.timestamp,
             "validation": self.validation,
+            "detections": self.detections or [],
         }
 
 
@@ -109,6 +126,8 @@ class Runner:
         max_retries: int = 2,
         retry_backoff: float = 2.0,
         max_workers: int = 1,
+        detectors: bool = True,
+        extra_detectors=None,
     ):
         self.target = target
         self.judge = judge
@@ -117,6 +136,11 @@ class Runner:
         self.max_retries = max_retries
         self.retry_backoff = retry_backoff
         self.max_workers = max(1, int(max_workers))
+        # Ground-truth detectors scan every reply for verifiably dangerous
+        # content (XSS, SQLi, leaked credentials...). This is evidence that
+        # stands on its own, independent of whether the judge called it a hit.
+        self.detectors = detectors
+        self.extra_detectors = list(extra_detectors or [])
 
     # ---- single probe ----------------------------------------------------------
 
@@ -218,6 +242,7 @@ class Runner:
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             attempts=attempts,
             grade=getattr(verdict, "grade", None),
+            detections=_scan(self, replies),
         )
 
     def _run_best_of_n(self, goal: str, strategy_name: str,
@@ -244,6 +269,7 @@ class Runner:
                     error=None, duration_s=time.time() - t0,
                     timestamp=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                     attempts=attempts, grade=getattr(verdict, "grade", None),
+                    detections=_scan(self, [reply]),
                 )
         if verdict is None:
             verdict = JudgeResult(False, "error", first_error or "no replies")
@@ -254,6 +280,7 @@ class Runner:
             error=first_error, duration_s=time.time() - t0,
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             attempts=attempts, grade=getattr(verdict, "grade", None),
+            detections=_scan(self, all_replies),
         )
 
     def _run_battery(self, goal: str, strategy_name: str,
@@ -284,6 +311,7 @@ class Runner:
                 error=error,
                 duration_s=time.time() - t0,
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                detections=_scan(self, [reply] if reply else []),
             ))
             if self.sleep_between:
                 time.sleep(self.sleep_between)

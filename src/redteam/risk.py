@@ -19,6 +19,50 @@ OWASP_LLM10 = {
     "unbounded_consumption": "LLM10",
 }
 
+# MITRE ATLAS technique mapping. Deliberately conservative: only technique
+# IDs verified against MITRE's published catalog appear here. A finding maps
+# to at most one technique; categories with no confidently-verified technique
+# are left unmapped rather than guessed, because a wrong ATLAS ID in a report
+# is worse than an absent one.
+#
+# Neither garak nor PyRIT ships an ATLAS mapping at the time of writing.
+MITRE_ATLAS = {
+    "prompt_injection": ("AML.T0051", "LLM Prompt Injection"),
+    "sensitive_disclosure": ("AML.T0024", "Exfiltration via AI Inference API"),
+    "system_prompt_leakage": ("AML.T0024", "Exfiltration via AI Inference API"),
+    "output_handling": ("AML.T0048", "External Harms"),
+    "poisoning": ("AML.T0020", "Poison Training Data"),
+    "excessive_agency": ("AML.T0086",
+                         "Exfiltration via AI Agent Tool Invocation"),
+    "supply_chain": ("AML.T0110", "AI Agent Tool Poisoning"),
+}
+
+# Jailbreak is a property of the technique used, not of the harm category, so
+# it is resolved from the strategy rather than the OWASP bucket.
+ATLAS_JAILBREAK = ("AML.T0054", "LLM Jailbreak")
+ATLAS_ADVERSARIAL_DATA = ("AML.T0043", "Craft Adversarial Data")
+ATLAS_INJECTION_DIRECT = ("AML.T0051.000", "LLM Prompt Injection: Direct")
+ATLAS_INJECTION_INDIRECT = ("AML.T0051.001", "LLM Prompt Injection: Indirect")
+
+
+def atlas_for(category: str, strategy: str = "") -> tuple[str, str] | None:
+    """Best-effort ATLAS technique for a finding. None when unsure."""
+    st = (strategy or "").lower()
+    if "indirect" in st:
+        return ATLAS_INJECTION_INDIRECT
+    if "inject" in st:
+        return ATLAS_INJECTION_DIRECT
+    # An encoded or mutated payload is adversarial data crafted to evade a filter
+    if st.startswith("mutate:") or "mutate:" in st or "obfusc" in st:
+        return ATLAS_ADVERSARIAL_DATA
+    if category in MITRE_ATLAS:
+        return MITRE_ATLAS[category]
+    # Anything that got a guardrail to stand down is a jailbreak
+    if st:
+        return ATLAS_JAILBREAK
+    return None
+
+
 SEVERITY_ORDER = ["critical", "high", "medium", "low", "informational"]
 
 
@@ -62,6 +106,9 @@ class RiskScorer:
 
         out["severity"] = sev
         out["owasp_id"] = OWASP_LLM10.get(category, "LLM01")
+        atlas = atlas_for(category, f.get("strategy") or "")
+        if atlas:
+            out["atlas_id"], out["atlas_technique"] = atlas
         out["vector"] = (
             f"{out['owasp_id']}:{category}/"
             f"verified={int(verified)}/oob={int(oob)}/rounds={rounds}"

@@ -69,6 +69,13 @@ def load_config(path: str) -> dict:
             print(f"warning: transfer_from file not found: {transfer_from}")
 
     cfg.setdefault("strategies", default_set)
+    # Baseline probe. `direct` sends the raw goal with nothing applied, so its
+    # rate is what the model does when simply asked. Without it a headline ASR
+    # has no denominator you can reason about, so it is included unless the
+    # operator explicitly turns it off.
+    cfg.setdefault("baseline", True)
+    if cfg["baseline"] and "direct" not in cfg["strategies"]:
+        cfg["strategies"] = ["direct", *cfg["strategies"]]
     judge = cfg.setdefault("judge", {})
     judge.setdefault("mode", "hybrid")
     # graded rubric by default in v4: detects GLM-style safe-compliance
@@ -296,12 +303,106 @@ def cmd_run(cfg: dict) -> int:
           f"ASR: {s['attack_success_rate']*100:.1f}%  "
           f"goals compromised: {s['goals_compromised']}/{s['total_goals']}  "
           f"errors: {s['errors']}")
+    if s.get("baseline_asr") is not None and s.get("attacked_asr") is not None:
+        lift = s.get("attack_lift")
+        print(f"baseline (asked plainly): {s['baseline_asr']*100:.1f}%   "
+              f"under attack: {s['attacked_asr']*100:.1f}%"
+              + (f"   lift: {lift*100:+.1f}pp" if lift is not None else ""))
+    if s.get("detector_hits"):
+        top = ", ".join(f"{d['detector']}={d['hits']}"
+                        for d in s["by_detector"][:4])
+        print(f"detector hits: {s['detector_hits']}  ({top})")
     print(f"elapsed: {elapsed:.1f}s")
     print(f"report: {json_path}")
     print(f"report: {html_path}")
     print(f"report: {md_path}")
     print(f"coverage: {cov_path}")
     return 0 if s["errors"] == 0 else 1
+
+
+def cmd_escalate(cfg: dict) -> int:
+    """Adaptive multi-turn escalation with backtracking (Conductor)."""
+    from redteam.conductor import Conductor
+
+    scope_cfg = cfg.get("scope") or {}
+    from redteam.scope import ScopeGuard
+    guard = ScopeGuard(scope_cfg)
+    guard.authorize_target(cfg["target"]["base_url"])
+
+    target = _build_target(cfg["target"])
+    ac = cfg.get("attacker") or {}
+    attacker = None
+    if ac.get("model"):
+        attacker = OpenAICompatTarget(
+            base_url=ac.get("base_url") or cfg["target"]["base_url"],
+            model=ac["model"],
+            api_key=_resolve_api_key(ac.get("api_key")),
+            temperature=ac.get("temperature", 0.8),
+        )
+    ec = cfg.get("escalate") or {}
+    max_turns = int(ec.get("max_turns", 6))
+    max_backtracks = int(ec.get("max_backtracks", 3))
+
+    judge_cfg = dict(cfg.get("judge") or {})
+    judge_cfg.setdefault("mode", "hybrid")
+    judge = _build_judge(judge_cfg, cfg["target"])
+
+    out_dir = cfg.get("out_dir", "runs")
+    run_name = cfg.get("run_name") or time.strftime("escalate-%Y%m%d-%H%M%S")
+    os.makedirs(out_dir, exist_ok=True)
+
+    goals = list(cfg["goals"])
+    results, t0 = [], time.time()
+    for i, goal in enumerate(goals, 1):
+        print(f"[{i}/{len(goals)}] ESCALATE: {goal[:66]!r}")
+        c = Conductor(target=target, attacker_model=attacker, judge=judge,
+                      max_turns=max_turns, max_backtracks=max_backtracks)
+        out = c.run(goal)
+        results.append(out)
+        mark = "HIT " if out["success"] else "miss"
+        print(f"    {mark} turns={out['turns']} "
+              f"backtracks={out['backtracks']} pruned={len(out['pruned'])}")
+
+    elapsed = time.time() - t0
+    successes = sum(1 for r in results if r["success"])
+    report = {
+        "meta": {
+            "mode": "escalate",
+            "target": cfg["target"]["model"],
+            "attacker": ac.get("model") or "(deterministic ladder)",
+            "max_turns": max_turns,
+            "max_backtracks": max_backtracks,
+            "judge_mode": judge_cfg.get("mode"),
+            "scope_declaration": scope_cfg.get("declaration", "(none declared)"),
+            "elapsed_s": round(elapsed, 1),
+        },
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "summary": {
+            "total_probes": len(results),
+            "successful_probes": successes,
+            "attack_success_rate": round(successes / len(results), 4)
+                if results else 0.0,
+            "total_goals": len(results),
+            "goals_compromised": successes,
+            "avg_turns": round(sum(r["turns"] for r in results) / len(results), 2)
+                if results else 0.0,
+            "total_backtracks": sum(r["backtracks"] for r in results),
+            "errors": sum(1 for r in results
+                          if any(t.get("error") for t in r["transcript"])),
+            "by_strategy": [], "by_goal": [],
+        },
+        "results": results,
+    }
+    json_path = os.path.join(out_dir, f"{run_name}.json")
+    html_path = os.path.join(out_dir, f"{run_name}.html")
+    write_reports(report, json_path=json_path, html_path=html_path)
+    s = report["summary"]
+    print(f"\nESCALATE done: {successes}/{len(results)} goals in avg "
+          f"{s['avg_turns']} turns ({s['total_backtracks']} backtracks) "
+          f"/ {elapsed:.1f}s")
+    print(f"report: {json_path}")
+    print(f"report: {html_path}")
+    return 0
 
 
 def cmd_evolve(cfg: dict) -> int:
@@ -745,6 +846,10 @@ def main(argv=None) -> int:
         "evolve", help="Evolutionary attack loop (needs evolve block in config)")
     p_evo.add_argument("-c", "--config", required=True, help="path to config.yaml")
 
+    p_esc = sub.add_parser(
+        "escalate",
+        help="adaptive multi-turn escalation with backtracking")
+    p_esc.add_argument("-c", "--config", required=True)
     p_camp = sub.add_parser(
         "campaign", help="Full campaign: recon→battery→adapt→evolve with memory")
     p_camp.add_argument("-c", "--config", required=True, help="path to config.yaml")
@@ -788,6 +893,8 @@ def main(argv=None) -> int:
         return cmd_pair(load_config(args.config))
     if args.cmd == "evolve":
         return cmd_evolve(load_config(args.config))
+    if args.cmd == "escalate":
+        return cmd_escalate(load_config(args.config))
     if args.cmd == "campaign":
         return cmd_campaign(load_config(args.config))
     if args.cmd == "app":

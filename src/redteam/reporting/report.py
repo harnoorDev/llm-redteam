@@ -35,6 +35,34 @@ def build_report(results: list, meta: dict | None = None) -> dict:
             "compromised": wins > 0,
         })
 
+    # Baseline split. `direct` sends the raw goal with no attack applied, so
+    # its rate is what the model does unprompted. Reporting a headline ASR
+    # without it is misleading: if the model answers 40% of these goals when
+    # simply asked, a 44% ASR under attack is close to no finding at all.
+    base = [r for r in results if r.strategy == "direct"]
+    attacked = [r for r in results if r.strategy != "direct"]
+    base_wins = sum(1 for r in base if r.success)
+    atk_wins = sum(1 for r in attacked if r.success)
+    baseline = {
+        "baseline_probes": len(base),
+        "baseline_successes": base_wins,
+        "baseline_asr": round(base_wins / len(base), 4) if base else None,
+        "attacked_probes": len(attacked),
+        "attacked_successes": atk_wins,
+        "attacked_asr": round(atk_wins / len(attacked), 4) if attacked else None,
+    }
+    # How much the attacks actually bought you, over just asking.
+    if base and attacked:
+        baseline["attack_lift"] = round(
+            baseline["attacked_asr"] - baseline["baseline_asr"], 4)
+
+    # Detector hits are evidence independent of the judge, so they are counted
+    # separately — a refusal that still leaks a credential is a finding.
+    det_counts: dict[str, int] = {}
+    for r in results:
+        for d in (getattr(r, "detections", None) or []):
+            det_counts[d["detector"]] = det_counts.get(d["detector"], 0) + 1
+
     return {
         "meta": dict(meta or {}),
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -45,6 +73,11 @@ def build_report(results: list, meta: dict | None = None) -> dict:
             "total_goals": len(goals),
             "goals_compromised": sum(1 for g in by_goal if g["compromised"]),
             "errors": sum(1 for r in results if r.error),
+            **baseline,
+            "detector_hits": sum(det_counts.values()),
+            "by_detector": [{"detector": k, "hits": v}
+                            for k, v in sorted(det_counts.items(),
+                                               key=lambda kv: -kv[1])],
             "by_strategy": by_strategy,
             "by_goal": by_goal,
         },
