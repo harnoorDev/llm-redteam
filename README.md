@@ -2,7 +2,7 @@
 
 **Full-spectrum red-team harness for LLMs and web applications.**
 
-[![tests](https://img.shields.io/badge/tests-156%20passing-brightgreen)]()
+[![tests](https://img.shields.io/badge/tests-208%20passing-brightgreen)]()
 [![python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![license](https://img.shields.io/badge/license-MIT-green)]()
 
@@ -28,13 +28,16 @@ combines the best published techniques into one coherent workflow.
 
 | Capability | Detail |
 |---|---|
-| **35+ attack strategies** | 7 classic (roleplay, fiction, crescendo, encoding...) + Pliny/L1B3RT4S harvest (godmode, dataset_seed, token_spoof, many_shot, babel, glitch_token...) + BugHunter extraction batteries + system-role shadowing |
-| **Composition** | Stack strategies (`godmode+refusal_suppression`), wrap in mutations (`mutate:leetspeak`, `mutate:unicode_tags` — 15 encoders from P4RS3LT0NGV3) |
-| **5 execution modes** | `run` (battery), `pair` (PAIR iterative), `evolve` (TAP-style evolutionary), `campaign` (recon→battery→adapt→evolve w/ memory), `app` (web-app scan) |
+| **69 attack strategies** | 7 classic (roleplay, fiction, crescendo, encoding...) + Pliny/L1B3RT4S harvest (godmode, dataset_seed, token_spoof, many_shot, babel, glitch_token...) + BugHunter extraction batteries + system-role shadowing + WallBreaker-parity families (cipherchat, skeleton_key, persuasion_attack, native_mimic, code_switch, misinfo_correction) |
+| **Multimodal** | `image_edit` renders the goal into a PNG and attacks through the image channel (Pillow optional — pure-Python PNG fallback) |
+| **Composition** | Stack strategies (`godmode+refusal_suppression`), wrap in mutations (`mutate:leetspeak`, `mutate:unicode_tags` — **42 encoders** from P4RS3LT0NGV3) |
+| **7 execution modes** | `run` (battery), `pair` (PAIR iterative), `evolve` (TAP-style evolutionary), `campaign` (recon→battery→adapt→evolve w/ memory), `app` (web-app scan), `harmbench` (standardized behavior benchmark), `converge` (universal-prompt discovery) |
+| **Reliability validation** | `run --validate N` re-fires every winner N times and reports a true compliance rate with a Wilson confidence interval — a single hit is sampling noise, not a bypass |
+| **MCP server** | `redteam-mcp` exposes the arsenal (strategies, offline payload rendering, 42 encoders) to any MCP client |
 | **Graded judging** | Binary or full/partial/refused rubric; optional 3-model judge panel with majority vote + dissent recording |
 | **Attack memory** | Anonymized winning techniques stored to disk, recalled by token-overlap relevance for future campaigns (PentAGI pattern) |
 | **Web-app scanning** | 8 proxy testers (IDOR, auth-bypass, mass-assignment, injection, SSRF, traversal...) each with 3-gate evidence protocol |
-| **Studio UI** | Live dashboard at `:8610` — launch jobs, SSE terminal streaming, findings browser, memory viewer |
+| **Studio UI** | Live dashboard at `:8610` — launch every mode, SSE terminal streaming, findings browser, memory viewer, Arsenal payload previewer, Converge miner, reliability Validate |
 
 ### Proven results (live runs)
 
@@ -65,11 +68,26 @@ uv run redteam evolve -c configs/glm53-v5-phish.yaml
 # 4. web-app campaign (replace target + declaration per SAFETY.md)
 uv run redteam app -c configs/example.yaml
 
-# 5. launch the Studio UI
+# 5. standardized benchmark (8 harm categories, comparable ASR across models)
+uv run redteam harmbench -c configs/example.yaml
+
+# 6. prove a bypass is systematic, not sampling noise (Wilson CI per winner)
+uv run redteam run -c configs/arsenal.yaml --validate 5
+
+# 7. mine finished runs for prompts that transfer across goals and models
+uv run redteam converge runs/*.json -o universal-prompts.json
+
+# 8. launch the Studio UI
 uv run redteam-studio --port 8610
+
+# 9. serve the arsenal to any MCP client
+uv run redteam-mcp
 ```
 
 Requires [uv](https://docs.astral.sh/uv/). Python 3.11+, no compiled dependencies.
+
+Optional extras: `.[image]` (Pillow — sharper multimodal PNGs; a pure-Python
+fallback ships in-tree) and `.[mcp]` (the `redteam-mcp` server).
 
 ---
 
@@ -113,8 +131,11 @@ retries, best-of-N) · [pair.py](src/redteam/pair.py) ·
 [verification.py](src/redteam/verification.py) · [oob.py](src/redteam/oob.py)
 (canary HTTP collector) · [tester/](src/redteam/tester/) (8 proxy testers) ·
 [app/](src/redteam/app/) (scout, tools registry, campaign) ·
-[reporting/](src/redteam/reporting/) · [ui_server.py](src/redteam/ui_server.py)
-+ [ui/](src/redteam/ui/) (Studio).
+[reporting/](src/redteam/reporting/) · [harmbench.py](src/redteam/harmbench.py)
+(benchmark suite) · [converge.py](src/redteam/converge.py) (universal-prompt
+discovery) · [validate.py](src/redteam/validate.py) (Wilson-CI reliability) ·
+[mcp_server.py](src/redteam/mcp_server.py) ·
+[ui_server.py](src/redteam/ui_server.py) + [ui/](src/redteam/ui/) (Studio).
 
 ---
 
@@ -122,6 +143,7 @@ retries, best-of-N) · [pair.py](src/redteam/pair.py) ·
 
 | Doc | Contents |
 |---|---|
+| **[REPOSITORY.md](REPOSITORY.md)** | Repository map: every module, all 9 CLI commands, 18 UI endpoints, config reference, output artifacts, extension points |
 | **[USAGE.md](USAGE.md)** | Every mode explained, config reference, all env vars, strategy catalog, judge setup, Studio walkthrough |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | Data-flow diagrams (Mermaid), attack lifecycle, memory protocol, tester gates, design decisions from 7 source harvests |
 | **[SAFETY.md](SAFETY.md)** | Scope-guard semantics, authorization requirements, responsible-use rules, what this tool will refuse to do |

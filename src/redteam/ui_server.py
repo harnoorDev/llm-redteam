@@ -72,6 +72,7 @@ def _runner_thread(job_id: str, cmd: list[str]) -> None:
 class RunRequest(BaseModel):
     mode: str
     config: str
+    validate_reps: int | None = None  # run mode: re-fire each winner N times
 
 
 @app.get("/api/health")
@@ -97,9 +98,12 @@ class _RunResponse:
     pass
 
 
+LAUNCH_MODES = ("run", "pair", "evolve", "campaign", "app", "harmbench")
+
+
 @app.post("/api/runs")
 def start_run(req: RunRequest):
-    if req.mode not in ("run", "pair", "evolve", "campaign", "app"):
+    if req.mode not in LAUNCH_MODES:
         raise HTTPException(400, f"unknown mode {req.mode}")
     config_path = (CONFIGS / req.config) if not req.config.startswith("/") \
         else Path(req.config)
@@ -114,8 +118,91 @@ def start_run(req: RunRequest):
         }
     cmd = [sys.executable, str(ROOT / "src" / "redteam" / "cli.py"),
            req.mode, "-c", str(config_path)]
+    # reliability pass is a `run`-only flag; clamp to the same bound as /api/validate
+    if req.mode == "run" and req.validate_reps:
+        cmd += ["--validate", str(max(1, min(int(req.validate_reps), 25)))]
     threading.Thread(target=_runner_thread, args=(job_id, cmd), daemon=True).start()
     return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/encoders")
+def encoders_endpoint():
+    """The mutation arsenal, same list the CLI stacks and the MCP server expose."""
+    from redteam.encoders import ENCODERS
+    return {"count": len(ENCODERS), "encoders": sorted(ENCODERS)}
+
+
+@app.get("/api/harmbench/categories")
+def harmbench_categories_endpoint():
+    from redteam.harmbench import HARMBENCH_CATEGORIES
+    return {
+        "count": len(HARMBENCH_CATEGORIES),
+        "categories": [{"name": k, "behaviors": len(v)}
+                       for k, v in sorted(HARMBENCH_CATEGORIES.items())],
+    }
+
+
+class RenderRequest(BaseModel):
+    goal: str
+    strategy: str = "godmode"
+    encoder: str | None = None
+
+
+@app.post("/api/render")
+def render_endpoint(req: RenderRequest):
+    """Render an attack payload offline (no target contacted).
+
+    Mirrors the MCP `render_attack`/`encode` tools so the Studio can preview
+    exactly what a strategy or mutation will put on the wire.
+    """
+    if not (req.goal or "").strip():
+        raise HTTPException(400, "goal is required")
+    from redteam.strategies.base import get_strategy, resolve_stack
+    try:
+        if "+" in req.strategy:
+            payload = resolve_stack(req.strategy, req.goal)
+            multi = False
+        else:
+            strat = get_strategy(req.strategy)
+            payload = strat.payload(req.goal)
+            multi = strat.is_multi_turn
+    except KeyError as e:
+        raise HTTPException(404, f"unknown strategy {req.strategy!r}") from e
+    turns = [payload] if isinstance(payload, str) else list(payload)
+    if req.encoder:
+        from redteam.encoders import ENCODERS
+        if req.encoder not in ENCODERS:
+            raise HTTPException(404, f"unknown encoder {req.encoder!r}")
+        turns = [str(ENCODERS[req.encoder](t)) for t in turns]
+    return {"strategy": req.strategy, "encoder": req.encoder,
+            "is_multi_turn": multi, "turns": turns}
+
+
+class ConvergeRequest(BaseModel):
+    runs: list[str]
+    top_k: int = 5
+
+
+@app.post("/api/converge")
+def converge_endpoint(req: ConvergeRequest):
+    """Mine selected run reports for universal (cross-goal, cross-model) prompts."""
+    if not req.runs:
+        raise HTTPException(400, "select at least one run report")
+    runs_root = RUNS.resolve()
+    paths: list[str] = []
+    for name in req.runs:
+        safe = Path(name).name  # strip directory components
+        if not safe.endswith(".json") or safe.startswith(".state-"):
+            raise HTTPException(400, f"invalid report name: {name}")
+        target = (RUNS / safe).resolve()
+        if runs_root not in target.parents or not target.is_file():
+            raise HTTPException(404, f"report not found: {name}")
+        paths.append(str(target))
+    from redteam.converge import discover_universal_prompts
+    try:
+        return discover_universal_prompts(paths, top_k=max(1, min(req.top_k, 50)))
+    except (OSError, json.JSONDecodeError, ValueError) as e:
+        raise HTTPException(400, f"converge failed: {e}") from e
 
 
 class ValidateRequest(BaseModel):
@@ -236,11 +323,17 @@ def history_endpoint():
     out = []
     if RUNS.exists():
         for f in sorted(RUNS.glob("*.json")):
-            if f.name.startswith(".state-"):
+            # runs/ also holds non-report sidecars: resume state, the strix
+            # coverage ledger, and the shared attack-memory bank (a JSON list).
+            if f.name.startswith((".state-", "coverage-")) or \
+                    f.name == "attack-memory.json":
                 continue
             try:
-                with open(f) as fh:
+                with open(f, encoding="utf-8") as fh:
                     rep = json.load(fh)
+                if not isinstance(rep, dict) or not (
+                        "summary" in rep or "results" in rep):
+                    continue  # not a run report
                 s = rep.get("summary") or {}
                 out.append({
                     "file": f.name,
@@ -253,7 +346,8 @@ def history_endpoint():
                     "generated_at": rep.get("generated_at"),
                     "size": f.stat().st_size,
                 })
-            except (OSError, json.JSONDecodeError, KeyError) as e:
+            except (OSError, json.JSONDecodeError, KeyError,
+                    AttributeError, TypeError) as e:
                 log.debug("skipping unreadable run %s: %s", f, e)
                 continue
     out.sort(key=lambda x: x["generated_at"] or "", reverse=True)

@@ -32,6 +32,34 @@ def is_retryable_error(e: Exception) -> bool:
     return any(m in msg for m in _TRANSIENT_MARKERS)
 
 
+def flatten_content(content) -> str:
+    """Render an OpenAI content value as report-safe text.
+
+    Multimodal payloads carry a list of typed blocks; attack_prompts is the
+    human- and tooling-facing record (reports, converge dedup, validation
+    re-fires), so it must always be a plain string.
+    """
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return str(content)
+    parts: list[str] = []
+    for block in content:
+        if not isinstance(block, dict):
+            parts.append(str(block))
+            continue
+        kind = block.get("type")
+        if kind == "text":
+            parts.append(block.get("text", ""))
+        elif kind == "image_url":
+            url = (block.get("image_url") or {}).get("url", "")
+            head = url.split(",", 1)[0] if url.startswith("data:") else url[:64]
+            parts.append(f"[image: {head} ({len(url)} chars)]")
+        else:
+            parts.append(f"[{kind}]")
+    return "\n".join(p for p in parts if p)
+
+
 class RunResult:
     __slots__ = (
         "attack_prompts",
@@ -47,6 +75,7 @@ class RunResult:
         "target_replies",
         "timestamp",
         "turns",
+        "validation",
     )
 
     def __init__(self, **kw):
@@ -66,6 +95,7 @@ class RunResult:
             "error": self.error,
             "duration_s": round(self.duration_s, 3) if self.duration_s else 0.0,
             "timestamp": self.timestamp,
+            "validation": self.validation,
         }
 
 
@@ -161,7 +191,7 @@ class Runner:
             if msgs is not None:
                 reply, error, attempts = self._call_with_retry(
                     self.target.send_history, msgs)
-                prompts = [msgs[-1]["content"]]
+                prompts = [flatten_content(msgs[-1]["content"])]
             else:
                 reply, error, attempts = self._call_with_retry(
                     self.target.send, prompts[0])

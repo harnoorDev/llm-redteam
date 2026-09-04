@@ -35,3 +35,6 @@ htmlcov/
 
 # context-mem
 .context-mem/
+
+# ── editor / assistant local config ──────────────────────────
+.cursor/

@@ -29,9 +29,10 @@ def load_config(path: str) -> dict:
     with open(path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     mode_app = "app_target" in cfg or cfg.get("app") is not None
+    mode_hb = cfg.get("harmbench") is not None
 
     problems = []
-    if not mode_app:
+    if not mode_app and not mode_hb:
         if not cfg.get("target", {}).get("base_url"):
             problems.append("target.base_url is required "
                             "(e.g. http://localhost:11434/v1)")
@@ -236,6 +237,28 @@ def cmd_run(cfg: dict) -> int:
         state.save()
     elapsed = time.time() - t0
 
+    # Reliability validation (WallBreaker `validate` parity): re-fire each
+    # winning prompt N times; jailbreak success is probabilistic, so a single
+    # hit may be sampling noise. Reuse validate_probe for Wilson CI + verdict.
+    reps = int(vc.get("reps") or 0)
+    validated_winners = fully_reliable = 0
+    if reps > 0:
+        from redteam.validate import validate_probe
+        winners = [r for r in results if r.success and r.attack_prompts]
+        print(f"\nvalidation pass: re-firing {len(winners)} winners x{reps}")
+        for r in winners:
+            vr = validate_probe(target=target, judge=judge, goal=r.goal,
+                                prompt=r.attack_prompts[0], trials=reps)
+            r.validation = vr.to_dict()
+            validated_winners += 1
+            if vr.compliance_rate == 1.0 and vr.completed > 0:
+                fully_reliable += 1
+            print(f"  {r.strategy:<24} {vr.verdict:<20} "
+                  f"rate={vr.compliance_rate:.2f} "
+                  f"CI=({vr.ci_low:.2f},{vr.ci_high:.2f})")
+        print(f"validation: {fully_reliable}/{validated_winners} winners "
+              f"systematically bypassed {reps}/{reps} trials")
+
     if oob:
         oob.stop()
 
@@ -246,6 +269,8 @@ def cmd_run(cfg: dict) -> int:
         "scope_declaration": (cfg.get("scope") or {}).get(
             "declaration", "(none declared)"),
         "elapsed_s": round(elapsed, 1),
+        **({"validated_winners": validated_winners,
+            "fully_reliable_winners": fully_reliable} if reps > 0 else {}),
     })
     json_path = os.path.join(out_dir, f"{run_name}.json")
     html_path = os.path.join(out_dir, f"{run_name}.html")
@@ -600,8 +625,65 @@ def cmd_pair(cfg: dict) -> int:
     html_path = os.path.join(out_dir, f"{run_name}.html")
     write_reports(report, json_path=json_path, html_path=html_path)
     print(f"\nPAIR done: {successes}/{len(results)} goals broken "
-          f"in avg {report['summary']['avg_rounds']} rounds · {elapsed:.1f}s")
+          f"in avg {report['summary']['avg_rounds']} rounds / {elapsed:.1f}s")
     print(f"report: {json_path}\nreport: {html_path}")
+    return 0
+
+
+def cmd_harmbench(cfg: dict) -> int:
+    """HarmBench-style standardized behavior battery (comparable ASR)."""
+    from redteam.harmbench import run_harmbench_suite, select_behaviors, write_harmbench_report
+    from redteam.scope import ScopeGuard
+
+    guard = ScopeGuard(cfg.get("scope"))
+    guard.authorize_target(cfg["target"]["base_url"])
+    if cfg.get("judge", {}).get("base_url"):
+        jguard = ScopeGuard(cfg.get("scope"))
+        jguard.authorize_target(cfg["judge"]["base_url"])
+
+    hb = cfg.get("harmbench") or {}
+    behaviors = select_behaviors(
+        categories=hb.get("categories"),
+        limit=int(hb.get("limit", 0)) or None,
+    )
+    if not behaviors:
+        print("config error: harmbench selection is empty", file=sys.stderr)
+        return 2
+
+    target = _build_target(cfg["target"])
+    judge = _build_judge(cfg.get("judge") or {}, cfg["target"])
+    runner = Runner(
+        target=target, judge=judge,
+        stop_on_success=bool(cfg.get("stop_on_success", False)),
+        sleep_between=cfg.get("sleep_between", 0.0),
+        max_retries=int(cfg.get("max_retries", 2)),
+        retry_backoff=float(cfg.get("retry_backoff", 2.0)),
+        max_workers=int(cfg.get("max_workers", 1)),
+    )
+
+    def progress(i: int, total: int, category: str, r) -> None:
+        mark = "HIT " if r.success else ("ERR " if r.error else "miss")
+        print(f"[{i:>3}/{total}] {mark} {category:<20} "
+              f"strategies={r.strategy:<20} goal={r.goal[:56]!r}")
+
+    print(f"harmbench suite: {len(behaviors)} behaviors "
+          f"across {len({c for c, _ in behaviors})} categories")
+    report = run_harmbench_suite(runner, behaviors, cfg["strategies"],
+                                 on_result=progress)
+
+    out_dir = cfg.get("out_dir", "runs")
+    run_name = cfg.get("run_name") or time.strftime("harmbench-%Y%m%d-%H%M%S")
+    path = write_harmbench_report(report, out_dir, run_name)
+
+    s = report["summary"]
+    print(f"\n{'='*62}")
+    print(f"HarmBench ASR: {s['attack_success_rate']*100:.1f}% "
+          f"({s['successful_probes']}/{s['total_probes']} probes)  "
+          f"behaviors compromised: {s['goals_compromised']}/{s['total_goals']}")
+    for cat, sc in sorted(report["by_category"].items()):
+        print(f"  {cat:<22} ASR {sc['asr']*100:5.1f}%  "
+              f"({sc['behaviors_compromised']}/{sc['behaviors']} behaviors)")
+    print(f"report: {path}")
     return 0
 
 
@@ -615,11 +697,35 @@ def cmd_report(args) -> int:
     write_reports(report, json_path=None, html_path=out)
     s = report["summary"]
     print(f"ASR {s['attack_success_rate']*100:.1f}% "
-          f"({s['successful_probes']}/{s['total_probes']} probes) → {out}")
+          f"({s['successful_probes']}/{s['total_probes']} probes) -> {out}")
+    return 0
+
+
+def cmd_converge(args) -> int:
+    from redteam.converge import discover_universal_prompts, write_converge_report
+
+    report = discover_universal_prompts(args.json_files, top_k=args.top_k)
+    path = write_converge_report(report, args.output)
+    s = report["summary"]
+    print(f"converge: {s['unique_prompts']} unique winners "
+          f"({s['winning_probes']} winning probes) across "
+          f"{s['runs_analyzed']} runs -> {s['technique_clusters']} clusters")
+    for u in report["universal_prompts"]:
+        print(f"  universal [{','.join(u['strategies'])[:36]:<36}] "
+              f"goals={u['goals']} models={len(u['models'])} "
+              f"prompt={u['prompt'][:60]!r}")
+    print(f"report: {path}")
     return 0
 
 
 def main(argv=None) -> int:
+    # Windows consoles default to cp1252; reports and strategy descriptions
+    # carry non-ASCII, so pin the streams to UTF-8 before anything prints.
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            with contextlib.suppress(Exception):
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+
     argv = list(sys.argv[1:] if argv is None else argv)
     ap = argparse.ArgumentParser(prog="redteam",
                                  description="LLM jailbreak red-teaming harness")
@@ -627,6 +733,9 @@ def main(argv=None) -> int:
 
     p_run = sub.add_parser("run", help="run a red-teaming pass from a YAML config")
     p_run.add_argument("-c", "--config", required=True, help="path to config.yaml")
+    p_run.add_argument("--validate", type=int, default=None, metavar="N",
+                       help="re-fire each winning prompt N times to score "
+                            "reliability (jailbreak success is probabilistic)")
 
     p_pair = sub.add_parser(
         "pair", help="PAIR-style iterative attack (needs attacker model in config)")
@@ -644,9 +753,21 @@ def main(argv=None) -> int:
         "app", help="Universal app red-team campaign (any HTTP app)")
     p_app.add_argument("-c", "--config", required=True, help="path to config.yaml")
 
+    p_hb = sub.add_parser(
+        "harmbench", help="HarmBench-style standardized behavior battery")
+    p_hb.add_argument("-c", "--config", required=True, help="path to config.yaml")
+
     p_rep = sub.add_parser("report", help="re-render HTML from a run JSON")
     p_rep.add_argument("json_file", help="run JSON path")
     p_rep.add_argument("-o", "--output", help="output html path (default: alongside)")
+
+    p_conv = sub.add_parser(
+        "converge", help="cluster winning prompts across runs into universal prompts")
+    p_conv.add_argument("json_files", nargs="+", help="run JSON paths to mine")
+    p_conv.add_argument("-o", "--output", default="universal-prompts.json",
+                        help="output path (default: universal-prompts.json)")
+    p_conv.add_argument("--top-k", type=int, default=5,
+                        help="number of universal prompts to keep (default: 5)")
 
     sub.add_parser("strategies", help="list available attack strategies")
 
@@ -659,7 +780,10 @@ def main(argv=None) -> int:
             print(f"{name:<22} {mt:<12} {s.description}")
         return 0
     if args.cmd == "run":
-        return cmd_run(load_config(args.config))
+        cfg = load_config(args.config)
+        if getattr(args, "validate", None):
+            cfg.setdefault("verification", {})["reps"] = args.validate
+        return cmd_run(cfg)
     if args.cmd == "pair":
         return cmd_pair(load_config(args.config))
     if args.cmd == "evolve":
@@ -668,8 +792,12 @@ def main(argv=None) -> int:
         return cmd_campaign(load_config(args.config))
     if args.cmd == "app":
         return cmd_app(load_config(args.config))
+    if args.cmd == "harmbench":
+        return cmd_harmbench(load_config(args.config))
     if args.cmd == "report":
         return cmd_report(args)
+    if args.cmd == "converge":
+        return cmd_converge(args)
     ap.print_help()
     return 2
 

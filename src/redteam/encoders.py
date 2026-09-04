@@ -145,6 +145,254 @@ def zero_width_encode(text: str) -> str:
     return "".join(out)
 
 
+# --------------------------------------------------- v2 expansion (WallBreaker parity)
+
+def base32_encode(text: str) -> str:
+    import base64 as _b64
+    return _b64.b32encode(text.encode()).decode()
+
+
+def base85_encode(text: str) -> str:
+    import base64 as _b64
+    return _b64.a85encode(text.encode()).decode()
+
+
+def base36_encode(text: str) -> str:
+    """Whole text \u2192 one big base-36 integer (dense, model-decodable)."""
+    n = int.from_bytes(text.encode("utf-8"), "big")
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    if n == 0:
+        return "0"
+    out = []
+    while n:
+        n, r = divmod(n, 36)
+        out.append(digits[r])
+    return "".join(reversed(out))
+
+
+def uu_encode(text: str) -> str:
+    import binascii
+    return binascii.b2a_uu(text.encode()).decode().strip()
+
+
+def quoted_printable_encode(text: str) -> str:
+    import quopri
+    return quopri.encodestring(text.encode()).decode()
+
+
+def url_encode(text: str) -> str:
+    import urllib.parse
+    return urllib.parse.quote(text)
+
+
+def hex_dense_encode(text: str) -> str:
+    return "".join(f"{b:02x}" for b in text.encode())
+
+
+def binary_dense_encode(text: str) -> str:
+    return "".join(f"{b:08b}" for b in text.encode())
+
+
+def double_base64_encode(text: str) -> str:
+    return base64_encode(base64_encode(text))
+
+
+def rot47(text: str) -> str:
+    out = []
+    for c in text:
+        o = ord(c)
+        if 33 <= o <= 126:
+            out.append(chr(33 + ((o - 33 + 47) % 94)))
+        else:
+            out.append(c)
+    return "".join(out)
+
+
+def rot5(text: str) -> str:
+    out = []
+    for c in text:
+        if c.isdigit():
+            out.append(str((int(c) + 5) % 10))
+        else:
+            out.append(c)
+    return "".join(out)
+
+
+def rot18(text: str) -> str:
+    """ROT13 for letters + ROT5 for digits (classic ROT18 combo)."""
+    return rot13(rot5(text))
+
+
+def alternating_case(text: str) -> str:
+    out = []
+    upper = False
+    for c in text:
+        if c.isalpha():
+            out.append(c.upper() if upper else c.lower())
+            upper = not upper
+        else:
+            out.append(c)
+    return "".join(out)
+
+
+def vowel_shuffle(text: str) -> str:
+    """Rotate vowels a\u2192e\u2192i\u2192o\u2192u\u2192y\u2192a \u2014 mostly readable, off-regex."""
+    m = str.maketrans("aeiouy", "eiouya")
+    return text.translate(m)
+
+
+_UPSIDE = (
+    "\u0250q\u0254p\u01dd\u025f\u0183\u0265\u0131\u027e\u029el\u026fuodb\u0279s\u0287n\u028c\u028dx\u028ez"  # a-z flipped
+    "\u2200\ud801\udc12\u0186p\u018e\u2132\u2141HI\u017f\u029e\u02e5WNO\u0500Q\u0279S\u22a5\u2229\u039bMX\u2144Z"  # A-Z flipped
+    "0\u0406\u1105\u3123\u03db9\u312586"  # 0-9 flipped
+)
+_UPSIDE_MAP = str.maketrans(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    ".?!,'\"()[]{}<>&_",
+    _UPSIDE + "\u02d9\u00bf\u00a1',\u201e)(][}{><\u214b\u203e",
+)
+
+
+def upside_down(text: str) -> str:
+    """Upside-down flip (180\u00b0 rotation) \u2014 readable after mental rotation."""
+    return "".join(reversed(text.translate(_UPSIDE_MAP)))
+
+
+def zalgo(text: str) -> str:
+    """Combining-diacritics storm: visually noisy, tokenizer-hostile."""
+    import random
+    combining = [chr(c) for c in range(0x0300, 0x036F)]
+    rng = random.Random(len(text))
+    out = []
+    for c in text:
+        out.append(c + "".join(rng.sample(combining, rng.randint(1, 3))))
+    return "".join(out)
+
+
+def rtl_override(text: str) -> str:
+    """U+202E RIGHT-TO-LEFT OVERRIDE wrap \u2014 renders reversed in most UIs."""
+    return "\u202e" + text + "\u202c"
+
+
+_BRAILLE_BASE = 0x2800  # \u2800 (blank cell); +pattern \u2192 braille cell
+
+
+def braille_encode(text: str) -> str:
+    """Letters \u2192 braille cells via dot-pattern encoding (visual, decodable)."""
+    out = []
+    for c in text.lower():
+        if c.isalpha():
+            v = ord(c) - 96  # a=1 ... z=26 \u2192 5-bit pattern
+            pattern = (v & 0b00011) | ((v & 0b11100) << 2)
+            out.append(chr(_BRAILLE_BASE | pattern))
+        else:
+            out.append(c)
+    return "".join(out)
+
+
+def polybius_encode(text: str) -> str:
+    """5x5 Polybius square (I/J merged): letter \u2192 row+col digits."""
+    out = []
+    for c in text.upper():
+        if c.isalpha():
+            ch = "I" if c == "J" else c
+            n = ord(ch) - 65  # A=0 ... I=8, K=9 (J merged into I)
+            out.append(f"{n // 5 + 1}{n % 5 + 1}")
+        else:
+            out.append(c)
+    return " ".join(out)
+
+
+def pig_latin(text: str) -> str:
+    out = []
+    for word in text.split():
+        if not word.isalpha():
+            out.append(word)
+        elif word[0].lower() in "aeiou":
+            out.append(word + "way")
+        else:
+            out.append(word[1:] + word[0].lower() + "ay")
+    return " ".join(out)
+
+
+_CYRILLIC = str.maketrans(
+    "acekopxyABCEHKMOPTX",
+    "\u0430\u0441\u0435\u043a\u043e\u0440\u0445\u0443\u0410\u0412\u0421\u0415\u041d\u041a\u041c\u041e\u0420\u0422\u0425",
+)
+
+
+def cyrillic_homoglyph(text: str) -> str:
+    """Latin \u2192 Cyrillic lookalikes (acekopxy...): visually identical, distinct codepoints."""
+    return text.translate(_CYRILLIC)
+
+
+_GREEK = str.maketrans(
+    "abdegiklnopstuvxy",
+    "\u03b1\u03b2\u03b4\u03b5\u03b3\u03b9\u03ba\u03bb\u03bd\u03bf\u03c1\u03c3\u03c4\u03c5\u03bd\u03c7\u03c8",
+)
+
+
+def greeklish(text: str) -> str:
+    """Latin \u2192 Greek letter lookalikes."""
+    return text.translate(_GREEK)
+
+
+_VIGENERE_KEY = "REDTEAM"
+
+
+def vigenere_encode(text: str, key: str = _VIGENERE_KEY) -> str:
+    out = []
+    ki = 0
+    for c in text:
+        if c.isalpha():
+            k = ord(key[ki % len(key)].lower()) - 97
+            if c.islower():
+                out.append(chr((ord(c) - 97 + k) % 26 + 97))
+            else:
+                out.append(chr((ord(c) - 65 + k) % 26 + 65))
+            ki += 1
+        else:
+            out.append(c)
+    return "".join(out)
+
+
+def keyboard_shift(text: str) -> str:
+    """Shift each letter to the key to its right on QWERTY (typo-mimicry)."""
+    rows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
+    right = {}
+    for row in rows:
+        for i, c in enumerate(row):
+            right[c] = row[(i + 1) % len(row)]
+    out = []
+    for c in text:
+        low = c.lower()
+        if low in right:
+            rep = right[low]
+            out.append(rep.upper() if c.isupper() else rep)
+        else:
+            out.append(c)
+    return "".join(out)
+
+
+def morse_dense_encode(text: str) -> str:
+    """Morse without letter separators (harder variant)."""
+    return morse_encode(text).replace(" / ", "  ")
+
+
+def expand_numbers(text: str) -> str:
+    """Digits \u2192 English words (bypass numeric-content filters)."""
+    words = ["zero", "one", "two", "three", "four", "five", "six",
+             "seven", "eight", "nine"]
+    return "".join(words[int(c)] if c.isdigit() else c for c in text)
+
+
+def sup_codepoints(text: str) -> str:
+    """Map digits/letters to Unicode superscript codepoints where they exist."""
+    sup_digits = str.maketrans("0123456789", "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079")
+    sup_letters = str.maketrans("abdegilmnoprstuv", "\u1d43\u1d47\u1d48\u1d49\u1d4d\u2071\u02e1\u1d50\u207f\u1d52\u1d56\u02b3\u02e2\u1d57\u1d58\u1d5b")
+    return text.translate(sup_digits).translate(sup_letters)
+
+
 ENCODERS: dict[str, object] = {
     "rot13": rot13,
     "leetspeak": leet_light,
@@ -161,4 +409,32 @@ ENCODERS: dict[str, object] = {
     "unicode_tags": unicode_tag_wrap,
     "emoji_stego": emoji_stego_wrap,
     "zero_width": zero_width_encode,
+    # ---- v2 expansion (WallBreaker / P4RS3LT0NGV3 parity) ----
+    "base32": base32_encode,
+    "base85": base85_encode,
+    "base36": base36_encode,
+    "uuencode": uu_encode,
+    "quoted_printable": quoted_printable_encode,
+    "url": url_encode,
+    "hex_dense": hex_dense_encode,
+    "binary_dense": binary_dense_encode,
+    "double_base64": double_base64_encode,
+    "rot47": rot47,
+    "rot5": rot5,
+    "rot18": rot18,
+    "alternating_case": alternating_case,
+    "vowel_shuffle": vowel_shuffle,
+    "upside_down": upside_down,
+    "zalgo": zalgo,
+    "rtl_override": rtl_override,
+    "braille": braille_encode,
+    "polybius": polybius_encode,
+    "pig_latin": pig_latin,
+    "cyrillic": cyrillic_homoglyph,
+    "greeklish": greeklish,
+    "vigenere": vigenere_encode,
+    "keyboard_shift": keyboard_shift,
+    "morse_dense": morse_dense_encode,
+    "expand_numbers": expand_numbers,
+    "sup_codepoints": sup_codepoints,
 }

@@ -49,8 +49,10 @@ def _ensure_loaded() -> None:
     from redteam import families_v3  # noqa: F401
     from redteam.strategies import (
         families,  # noqa: F401
+        multimodal,  # noqa: F401
         pliny,  # noqa: F401
         v4_families,  # noqa: F401
+        v5_families,  # noqa: F401
     )
 
 

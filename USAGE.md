@@ -15,14 +15,18 @@ and the Studio UI.
    - [evolve — evolutionary](#3-evolve--evolutionary)
    - [campaign — full pipeline](#4-campaign--full-pipeline)
    - [app — web-app red team](#5-app--web-app-red-team)
+   - [harmbench — behavior benchmark](#6-harmbench--behavior-benchmark)
+   - [converge — universal prompts](#7-converge--universal-prompts)
 4. [Strategy catalog](#strategy-catalog)
 5. [Mutation encoders](#mutation-encoders)
 6. [Judges](#judges)
 7. [Safety & scope](#safety--scope)
 8. [Env vars](#environment-variables)
 9. [Reports & artifacts](#reports--artifacts)
-10. [Studio UI](#studio-ui)
-11. [Troubleshooting](#troubleshooting)
+10. [Reliability validation](#reliability-validation)
+11. [MCP server](#mcp-server)
+12. [Studio UI](#studio-ui)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -204,9 +208,48 @@ probes only; write-path probes are gated behind explicit `allow_destructive: tru
 
 ---
 
+### 6. `harmbench` — behavior benchmark
+
+Standardized behavior battery for **comparable** ASR across models and over
+time. 8 HarmBench-style categories x 5 canonical behaviors (40 total); the
+report scores per-category ASR so you can see *which* harm class a model is
+weak on, not just an aggregate number.
+
+```yaml
+harmbench:
+  categories: ["cybercrime", "copyright"]   # omit for all 8
+  limit: 10                                 # spread round-robin across categories
+strategies: [direct, godmode]
+```
+
+```bash
+uv run redteam harmbench -c configs/example.yaml
+```
+
+Categories: `cybercrime` · `chemical_biological` · `copyright` ·
+`misinformation` · `harassment` · `illegal_activity` · `self_harm` ·
+`hate_speech`. `limit` narrows every selected category evenly rather than
+truncating whole categories out of the suite.
+
+### 7. `converge` — universal prompts
+
+Mines finished run reports for the winning prompts that **transfer**. A prompt
+that compromised many distinct goals across many distinct target models is a
+universal prompt worth keeping as a transfer corpus; everything else was
+goal-specific luck.
+
+```bash
+uv run redteam converge runs/run-a.json runs/run-b.json   -o universal-prompts.json --top-k 10
+```
+
+Output ranks prompts by generality (distinct goals, distinct models) and
+clusters wins by technique, so you can see which *family* generalizes.
+
+---
+
 ## Strategy catalog
 
-35+ registered; full live list: `uv run redteam strategies`.
+69 registered; full live list: `uv run redteam strategies`.
 
 | Group | Strategies |
 |---|---|
@@ -214,7 +257,9 @@ probes only; write-path probes are gated behind explicit `allow_destructive: tru
 | **pliny/L1B3RT4S (9)** | `godmode` (`{GODMODE:ENABLED}` handshake) · `command_protocol` (`!JAILBREAK`/`!OPPO`) · `dataset_seed` (synthetic-dataset laundering) · `token_spoof` (fake `<|system|>`-style markup) · `many_shot` · `babel` (Library-of-Babel frame) · `glitch_token` (SolidGoldMagikarp tokens) · `context_flood` · `prompt_inject` |
 | **bughunter (3)** | `extraction` (system-prompt leak battery) · `indirect_injection` · `tool_exfil` |
 | **v4** | `system_shadow` (forged `role: "system"` messages) |
-| **mutations (15)** | see below |
+| **v5 / WallBreaker parity (6)** | `cipherchat` (ROT13 cipher channel — the plaintext goal never appears) · `skeleton_key` (behavior-augmentation override) · `persuasion_attack` (expert-endorsement + evidence framing) · `native_mimic` (native-speaker register shift) · `code_switch` (mid-prompt language switching) · `misinfo_correction` (correction-framing pretext) |
+| **multimodal (1)** | `image_edit` — renders the goal into a PNG and sends it as an `image_url` content block alongside the text frame |
+| **mutations (42)** | see below |
 
 **Composition:** strategies stack with `+`, mutations wrap with `mutate:NAME`:
 `godmode+refusal_suppression+mutate:leetspeak`. A multi-part stack folds
@@ -222,10 +267,21 @@ messages inside-out; a pure mutation chain wraps in `direct`.
 
 ## Mutation encoders
 
-`leetspeak` · `leetspeak_heavy` · `rot13` · `atbash` · `caesar` · `base64` ·
-`hex` · `binary` · `nato` · `morse` · `a1z26` · `reverse` · `unicode_tags`
-(invisible Unicode-Tags-block smuggling) · `emoji_stego` (variation-selector
-emoji steganography) · `zero_width`.
+42 transforms. Full live list: `uv run redteam strategies` (or `/api/encoders`
+in the Studio, or the `list_encoders` MCP tool).
+
+| Group | Encoders |
+|---|---|
+| **rotation / substitution** | `rot5` · `rot13` · `rot18` · `rot47` · `atbash` · `caesar3` · `vigenere` · `leetspeak` · `leetspeak_heavy` · `vowel_shuffle` · `keyboard_shift` |
+| **base / radix** | `base32` · `base36` · `base64` · `base85` · `double_base64` · `hex` · `hex_dense` · `binary` · `binary_dense` |
+| **transport** | `url` · `quoted_printable` · `uuencode` |
+| **alphabets** | `nato` · `morse` · `morse_dense` · `a1z26` · `braille` · `polybius` |
+| **homoglyph / lookalike** | `cyrillic` · `greeklish` · `upside_down` · `sup_codepoints` |
+| **invisible** | `unicode_tags` (Unicode-Tags-block smuggling) · `zero_width` · `emoji_stego` (variation-selector steganography) · `rtl_override` |
+| **structural** | `reverse` · `alternating_case` · `zalgo` · `pig_latin` · `expand_numbers` |
+
+`decode_unicode_tags(text)` reverses the invisible-tag encoding when you need
+to read back what a payload actually carried.
 
 ## Judges
 
@@ -287,6 +343,55 @@ Every run writes three sidecars + optional extras to `runs/`:
 | `.state-<run>.json` | Resume checkpoint (with `verification.resume: true`) |
 | `attack-memory.json` | Anonymized winner bank (shared across campaigns) |
 
+## Reliability validation
+
+A single hit is not a bypass — jailbreak success is probabilistic, so one
+lucky sample can look identical to a systematic weakness. `--validate N`
+re-fires every winning prompt N more times and reports the true compliance
+rate with a **Wilson confidence interval**:
+
+```bash
+uv run redteam run -c configs/arsenal.yaml --validate 5
+```
+
+```
+validation pass: re-firing 11 winners x5
+  godmode                  systematic bypass    rate=1.00 CI=(0.57,1.00)
+  cipherchat               intermittent         rate=0.40 CI=(0.12,0.77)
+validation: 1/2 winners systematically bypassed 5/5 trials
+```
+
+Verdicts: `robust` (never complied) · `systematic bypass` (every trial) ·
+`intermittent` · `flaky` · `partial-only` · `unreachable`. Per-winner results
+are written into each result's `validation` field in the run JSON. The same
+engine backs the Studio's **Validate** view and its `/api/validate` endpoint,
+so a probe you validate in the UI scores identically to one validated on the CLI.
+
+Note the interval width: at n=5 a perfect 5/5 still spans 0.57–1.00. Raise N
+before treating a rate as settled.
+
+## MCP server
+
+Exposes the arsenal to any MCP client (Claude Code, Claude Desktop, etc.) —
+useful for rendering payloads inside another agent without giving it network
+access to your targets.
+
+```bash
+uv pip install '.[mcp]'
+uv run redteam-mcp
+```
+
+| Tool | Purpose |
+|---|---|
+| `list_strategies()` | every registered strategy + whether it is multi-turn |
+| `render_attack(goal, strategy)` | render a payload offline; supports stacks (`godmode+mutate:rot13`) |
+| `encode(text, encoder)` | apply any of the 42 mutation transforms |
+| `decode_unicode_tags(text)` | reveal text hidden in the Unicode Tags block |
+| `list_encoders()` | the encoder catalog as JSON |
+
+All tools are **offline** — they render and transform text; none of them
+contact a target.
+
 ## Studio UI
 
 ```bash
@@ -302,6 +407,12 @@ open http://127.0.0.1:8610
 | History | every report indexed by date/mode/target/ASR |
 | Memory | winner bank table |
 | App Findings | last app-scan findings with OWASP tags |
+| Validate | re-fire any probe N times against any endpoint; true rate + Wilson CI + verdict distribution |
+| Arsenal | browse all 69 strategies and 42 encoders; render any payload (with optional mutation) offline before you fire it |
+| Converge | select finished runs and mine them for universal prompts + technique clusters |
+
+Every CLI mode is launchable from **Launch** — including `harmbench`, and the
+`--validate N` reliability pass (the re-fire field appears when mode is `run`).
 
 ## Troubleshooting
 

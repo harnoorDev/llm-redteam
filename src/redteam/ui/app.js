@@ -296,7 +296,12 @@ VIEWS.launch = async () => {
             <option value="evolve">evolve — evolutionary prompt breeding</option>
             <option value="campaign" selected>campaign — full phased engagement</option>
             <option value="app">app — universal HTTP app scan</option>
+            <option value="harmbench">harmbench — standardized behavior benchmark</option>
           </select>
+        </div>
+        <div class="field" id="validate-field" hidden>
+          <label for="validate-reps">Reliability re-fire <span class="dim small">(run mode — re-fires each winner N× for a Wilson CI)</span></label>
+          <input type="number" id="validate-reps" min="0" max="25" step="1" value="0" placeholder="0 = off">
         </div>
         <div class="field">
           <label for="config">Config file</label>
@@ -323,16 +328,23 @@ VIEWS.launch = async () => {
     catch (e) { $("#peek").textContent = "error: " + e.message; }
   };
   $("#btn-peek").addEventListener("click", peek);
-  $("#mode").addEventListener("change", () => {
-    const map = { campaign: "glm53-v6-campaign.yaml", app: null, run: "arsenal.yaml", pair: "pair.yaml", evolve: "glm53-v5-phish.yaml" };
-    const want = map[$("#mode").value];
+  const syncMode = () => {
+    const mode = $("#mode").value;
+    $("#validate-field").hidden = mode !== "run";
+    const map = { campaign: "glm53-v6-campaign.yaml", app: null, run: "arsenal.yaml", pair: "pair.yaml", evolve: "glm53-v5-phish.yaml", harmbench: null };
+    const want = map[mode];
     if (want && [...$("#config").options].some((o) => o.value === want)) { $("#config").value = want; peek(); }
-  });
+  };
+  $("#mode").addEventListener("change", syncMode);
+  syncMode();
   $("#btn-start").addEventListener("click", async () => {
     const btn = $("#btn-start");
     btn.disabled = true; btn.textContent = "⏳ starting…";
     try {
-      const res = await api("/runs", { method: "POST", body: JSON.stringify({ mode: $("#mode").value, config: $("#config").value }) });
+      const reps = parseInt($("#validate-reps")?.value || "0", 10) || 0;
+      const payload = { mode: $("#mode").value, config: $("#config").value };
+      if (payload.mode === "run" && reps > 0) payload.validate_reps = reps;
+      const res = await api("/runs", { method: "POST", body: JSON.stringify(payload) });
       state.activeJob = res.job_id;
       toast(`Job ${res.job_id} queued`, "ok");
       nav("jobs");
@@ -651,6 +663,124 @@ function renderValidation(r) {
       </table>
     </div>`;
 }
+
+// ────────────────────── arsenal (strategies + encoders + preview) ─────────────
+VIEWS.arsenal = async () => {
+  const c = setTitle("Arsenal", "every strategy and mutation, rendered offline");
+  const [strats, encs] = await Promise.all([api("/strategies"), api("/encoders")]);
+  const list = strats.strategies || [];
+  c.innerHTML = `
+    <div class="grid cols-2" style="margin-bottom:1rem">
+      <div class="card"><h3>Attack strategies</h3>
+        <div class="big">${list.length}</div>
+        <div class="label">registered families</div></div>
+      <div class="card"><h3>Mutation encoders</h3>
+        <div class="big">${encs.count}</div>
+        <div class="label">transforms available to <code>mutate:</code></div></div>
+    </div>
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Render a payload</h3>
+      <p class="small dim">Builds the exact prompt a strategy puts on the wire. Nothing is sent to any target.</p>
+      <div class="row">
+        <div class="field" style="flex:2"><label for="a-goal">Goal</label>
+          <input type="text" id="a-goal" placeholder="Explain how to pick a basic pin tumbler lock"></div>
+        <div class="field" style="flex:1"><label for="a-strat">Strategy</label>
+          <select id="a-strat">${list.map((s) =>
+            `<option value="${esc(s.name)}"${s.name === "godmode" ? " selected" : ""}>${esc(s.name)}</option>`).join("")}</select></div>
+        <div class="field" style="flex:1"><label for="a-enc">Mutation</label>
+          <select id="a-enc"><option value="">(none)</option>${(encs.encoders || []).map((e) =>
+            `<option value="${esc(e)}">${esc(e)}</option>`).join("")}</select></div>
+      </div>
+      <div class="row"><button id="a-render" class="btn primary">⚙ Render</button></div>
+      <div id="a-out" class="terminal" style="min-height:220px;margin-top:.6rem">enter a goal and hit Render…</div>
+    </div>
+    <div class="card" style="padding:.4rem .9rem">
+      <table class="data">
+        <tr><th>Strategy</th><th>Type</th><th>Description</th></tr>
+        ${list.map((s) => `<tr>
+          <td class="mono">${esc(s.name)}</td>
+          <td>${s.is_multi_turn ? "multi-turn" : "single-turn"}</td>
+          <td class="small">${esc(s.description)}</td></tr>`).join("")}
+      </table>
+    </div>`;
+
+  $("#a-render").addEventListener("click", async () => {
+    const goal = $("#a-goal").value.trim();
+    if (!goal) { toast("Goal is required", "err"); return; }
+    $("#a-out").textContent = "rendering…";
+    try {
+      const r = await api("/render", { method: "POST", body: JSON.stringify({
+        goal, strategy: $("#a-strat").value, encoder: $("#a-enc").value || null }) });
+      $("#a-out").textContent = r.turns
+        .map((t, i) => (r.turns.length > 1 ? `-- turn ${i + 1} --\n${t}` : t))
+        .join("\n\n");
+    } catch (e) { $("#a-out").textContent = "error: " + e.message; }
+  });
+};
+
+// ────────────────────── converge (universal prompt discovery) ────────────────
+VIEWS.converge = async () => {
+  const c = setTitle("Converge", "mine finished runs for universal prompts");
+  const hist = await api("/history");
+  const runs = hist.runs || [];
+  c.innerHTML = `
+    <div class="card" style="margin-bottom:1rem">
+      <h3>Select run reports</h3>
+      <p class="small dim">A prompt that broke many goals across many models transfers. Pick two or more runs to rank them.</p>
+      ${runs.length ? `<div style="max-height:220px;overflow:auto;margin:.5rem 0">
+        ${runs.map((r) => `<label style="display:block;padding:.15rem 0" class="mono small">
+          <input type="checkbox" class="cv-run" value="${esc(r.file)}" checked>
+          ${esc(r.file)} <span class="dim">${esc(shortTarget(r.target))} · ${pct(r.asr)} ASR</span>
+        </label>`).join("")}</div>`
+        : '<div class="empty"><p class="dim">No run reports yet. Launch a run first.</p></div>'}
+      <div class="row">
+        <div class="field" style="max-width:140px"><label for="cv-topk">Top K</label>
+          <input type="number" id="cv-topk" min="1" max="50" value="5"></div>
+        <button id="cv-go" class="btn primary" ${runs.length ? "" : "disabled"}>🧬 Converge</button>
+      </div>
+    </div>
+    <div id="cv-out"></div>`;
+
+  $("#cv-go")?.addEventListener("click", async () => {
+    const sel = $$(".cv-run").filter((el) => el.checked).map((el) => el.value);
+    if (!sel.length) { toast("Select at least one run", "err"); return; }
+    $("#cv-out").innerHTML = '<div class="card"><div class="spinner"></div></div>';
+    try {
+      const r = await api("/converge", { method: "POST", body: JSON.stringify({
+        runs: sel, top_k: parseInt($("#cv-topk").value, 10) || 5 }) });
+      const s = r.summary || {};
+      $("#cv-out").innerHTML = `
+        <div class="grid cols-2" style="margin-bottom:1rem">
+          <div class="card"><h3>Unique winners</h3><div class="big">${s.unique_prompts ?? 0}</div>
+            <div class="label">from ${s.winning_probes ?? 0} winning probes</div></div>
+          <div class="card"><h3>Technique clusters</h3><div class="big">${s.technique_clusters ?? 0}</div>
+            <div class="label">across ${s.runs_analyzed ?? 0} runs</div></div>
+        </div>
+        <div class="card" style="padding:.4rem .9rem;margin-bottom:1rem">
+          <table class="data">
+            <tr><th>#</th><th>Goals</th><th>Models</th><th>Strategies</th><th>Prompt</th></tr>
+            ${(r.universal_prompts || []).map((u, i) => `<tr>
+              <td>${i + 1}</td><td>${u.goals}</td>
+              <td class="mono small">${esc((u.models || []).join(", "))}</td>
+              <td class="mono small">${esc((u.strategies || []).join(", "))}</td>
+              <td class="small">${esc(truncate(u.prompt, 90))}</td></tr>`).join("")
+              || '<tr><td colspan="5" class="dim">no universal prompts found</td></tr>'}
+          </table>
+        </div>
+        <div class="card" style="padding:.4rem .9rem">
+          <table class="data">
+            <tr><th>Technique</th><th>Wins</th><th>Distinct goals</th><th>Models</th></tr>
+            ${(r.technique_clusters || []).map((t) => `<tr>
+              <td class="mono">${esc(t.technique)}</td><td>${t.wins}</td>
+              <td>${t.distinct_goals}</td>
+              <td class="mono small">${esc((t.models || []).join(", "))}</td></tr>`).join("")}
+          </table>
+        </div>`;
+    } catch (e) {
+      $("#cv-out").innerHTML = `<div class="card"><p class="dim">converge failed: ${esc(e.message)}</p></div>`;
+    }
+  });
+};
 
 // ─────────────────────────── boot ──────────────────────────
 pollBackend();

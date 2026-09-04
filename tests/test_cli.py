@@ -73,7 +73,9 @@ def test_cli_run_with_mock_http(tmp_path):
         rc = main(["run", "-c", str(cfg_file)])
     assert rc == 0
     runs = tmp_path / "runs"
-    jsons = [p for p in runs.glob("*.json") if not p.name.startswith("coverage")]
+    # skip the coverage ledger and the dot-prefixed resume-state file
+    jsons = [p for p in runs.glob("*.json")
+             if not p.name.startswith(("coverage", "."))]
     assert jsons, "run should write a JSON report"
     rep = json.loads(jsons[0].read_text(encoding="utf-8"))
     assert rep["summary"]["total_probes"] == 1

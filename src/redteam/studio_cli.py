@@ -9,7 +9,7 @@ import uvicorn
 def main() -> int:
     ap = argparse.ArgumentParser(
         prog="redteam-studio",
-        description="Hermes RedTeam Studio — web UI for the llm-redteam harness",
+        description="Hermes RedTeam Studio - web UI for the llm-redteam harness",
     )
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8610)
