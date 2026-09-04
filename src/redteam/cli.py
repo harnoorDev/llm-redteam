@@ -446,6 +446,82 @@ def cmd_escalate(cfg: dict) -> int:
     return 0
 
 
+def cmd_adaptive(cfg: dict) -> int:
+    """Budgeted run: pick strategies by historical success, stop on first hit."""
+    from redteam.scope import ScopeGuard
+    from redteam.selector import EpsilonGreedySelector, StrategyStats
+
+    guard = ScopeGuard(cfg.get("scope"))
+    guard.authorize_target(cfg["target"]["base_url"])
+
+    target = _build_target(cfg["target"])
+    judge = _build_judge(cfg["judge"], cfg["target"])
+    ad = cfg.get("adaptive") or {}
+    max_attempts = int(ad.get("max_attempts", 5))
+    epsilon = float(ad.get("epsilon", 0.2))
+    out_dir = cfg.get("out_dir", "runs")
+    run_name = cfg.get("run_name") or time.strftime("adaptive-%Y%m%d-%H%M%S")
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Learn from prior runs against this same model; a strategy's rate is a
+    # property of the target, so other models' history would be noise.
+    stats = StrategyStats.from_dir(
+        ad.get("history_dir", out_dir),
+        target_model=None if ad.get("all_models") else cfg["target"]["model"])
+    known = sum(1 for v in stats.stats.values() if v["attempts"])
+    print(f"adaptive: {known} strategies with prior history "
+          f"(epsilon={epsilon}, budget={max_attempts}/goal)")
+
+    runner = Runner(target=target, judge=judge,
+                    max_retries=int(cfg.get("max_retries", 2)),
+                    retry_backoff=float(cfg.get("retry_backoff", 2.0)))
+    selector = EpsilonGreedySelector(stats, epsilon=epsilon,
+                                     seed=ad.get("seed"))
+    candidates = list(cfg["strategies"])
+
+    def attempt(goal, strategy):
+        r = runner.run_strategy(goal, strategy)
+        return r[0] if isinstance(r, list) else r
+
+    results, outcomes, t0 = [], [], time.time()
+    for i, goal in enumerate(cfg["goals"], 1):
+        print(f"[{i}/{len(cfg['goals'])}] ADAPTIVE: {goal[:60]!r}")
+        out = selector.run_goal(goal, candidates, attempt, max_attempts)
+        for step in out["history"]:
+            print(f"    {'HIT ' if step['success'] else 'miss'} "
+                  f"{step['strategy']:<28} prior={step['prior_rate']:.2f}")
+        outcomes.append({k: v for k, v in out.items() if k != "result"})
+        if out.get("result") is not None:
+            results.append(out["result"])
+
+    elapsed = time.time() - t0
+    probes = sum(o["attempts"] for o in outcomes)
+    wins = sum(1 for o in outcomes if o["success"])
+    report = build_report(results, meta={
+        "mode": "adaptive",
+        "target": cfg["target"]["model"],
+        "base_url": cfg["target"]["base_url"],
+        "judge_mode": cfg["judge"].get("mode", "hybrid"),
+        "scope_declaration": (cfg.get("scope") or {}).get(
+            "declaration", "(none declared)"),
+        "max_attempts": max_attempts,
+        "epsilon": epsilon,
+        "elapsed_s": round(elapsed, 1),
+    })
+    report["adaptive"] = outcomes
+    report["summary"]["goals_compromised"] = wins
+    report["summary"]["total_goals"] = len(outcomes)
+    json_path = os.path.join(out_dir, f"{run_name}.json")
+    html_path = os.path.join(out_dir, f"{run_name}.html")
+    write_reports(report, json_path=json_path, html_path=html_path)
+
+    full = len(candidates) * len(outcomes)
+    print(f"\nADAPTIVE done: {wins}/{len(outcomes)} goals in {probes} probes "
+          f"(a full battery would be {full}) / {elapsed:.1f}s")
+    print(f"report: {json_path}")
+    return 0
+
+
 def cmd_evolve(cfg: dict) -> int:
     from redteam.evolve import Evolver
 
@@ -887,6 +963,10 @@ def main(argv=None) -> int:
         "evolve", help="Evolutionary attack loop (needs evolve block in config)")
     p_evo.add_argument("-c", "--config", required=True, help="path to config.yaml")
 
+    p_ad = sub.add_parser(
+        "adaptive",
+        help="budgeted run: pick strategies by historical success rate")
+    p_ad.add_argument("-c", "--config", required=True)
     p_esc = sub.add_parser(
         "escalate",
         help="adaptive multi-turn escalation with backtracking")
@@ -934,6 +1014,8 @@ def main(argv=None) -> int:
         return cmd_pair(load_config(args.config))
     if args.cmd == "evolve":
         return cmd_evolve(load_config(args.config))
+    if args.cmd == "adaptive":
+        return cmd_adaptive(load_config(args.config))
     if args.cmd == "escalate":
         return cmd_escalate(load_config(args.config))
     if args.cmd == "campaign":

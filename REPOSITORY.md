@@ -15,10 +15,10 @@ the map between them.
 | **Language** | Python 3.11+ (no compiled dependencies) |
 | **Packages** | `llm-redteam` v1.0.0 and `llm-redteam-mcp` v1.0.0, MIT |
 | **Entry points** | `redteam` (CLI) · `redteam-studio` (web UI) · `llm-redteam-mcp` (MCP server) |
-| **Surfaces** | 9 CLI commands · 9 Studio views · 5 MCP tools |
+| **Surfaces** | 11 CLI commands · 9 Studio views · 5 MCP tools |
 | **Arsenal** | 69 attack strategies · 42 mutation encoders · 40 benchmark behaviors |
 | **App testing** | 8 proxy testers on a 3-gate evidence protocol |
-| **Tests** | 217 tests, 81% coverage |
+| **Tests** | 285 tests, 81% coverage |
 | **Tooling** | `uv` · `pytest` + `pytest-cov` · `ruff` |
 | **Install** | 8 packages core; `[studio]` 21, `[mcp]` 33, `[all]` 40 |
 
@@ -40,6 +40,10 @@ llm-redteam/
 │   ├── judge.py                # refusal heuristics + optional LLM-as-judge, graded rubric
 │   ├── panel.py                # 3-judge majority vote with dissent recording
 │   ├── validate.py             # re-fire a probe K times → rate + Wilson CI + verdict
+│   ├── detectors.py            # 14 ground-truth detectors (evidence, not opinion)
+│   ├── selector.py             # Wilson-ranked adaptive strategy selection
+│   ├── converters.py           # 10 LLM-backed semantic converters
+│   ├── targets_http.py         # raw-HTTP target: attack any application
 │   ├── scope.py                # authorization guard (refuses undeclared targets)
 │   │
 │   ├── strategies/
@@ -145,6 +149,8 @@ uv run redteam <command> [options]
 | `harmbench -c cfg.yaml` | Standardized 40-behavior benchmark, per-category ASR |
 | `converge a.json b.json` | Mine finished runs for prompts that transfer |
 | `report run.json -o out.html` | Re-render a report as HTML |
+| `adaptive -c cfg.yaml` | Budgeted run: strategies ranked by historical success, stop on first hit |
+| `escalate -c cfg.yaml` | Adaptive multi-turn with refusal backtracking |
 | `strategies` | List every registered strategy |
 
 ---

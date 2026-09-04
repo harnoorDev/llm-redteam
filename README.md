@@ -31,7 +31,14 @@ combines the best published techniques into one coherent workflow.
 | **69 attack strategies** | 7 classic (roleplay, fiction, crescendo, encoding...) + Pliny/L1B3RT4S harvest (godmode, dataset_seed, token_spoof, many_shot, babel, glitch_token...) + BugHunter extraction batteries + system-role shadowing + WallBreaker-parity families (cipherchat, skeleton_key, persuasion_attack, native_mimic, code_switch, misinfo_correction) |
 | **Multimodal** | `image_edit` renders the goal into a PNG and attacks through the image channel (Pillow optional — pure-Python PNG fallback) |
 | **Composition** | Stack strategies (`godmode+refusal_suppression`), wrap in mutations (`mutate:leetspeak`, `mutate:unicode_tags` — **42 encoders** from P4RS3LT0NGV3) |
-| **9 CLI commands** | `run` (battery), `pair` (PAIR iterative), `evolve` (TAP-style evolutionary), `campaign` (recon→battery→adapt→evolve w/ memory), `app` (web-app scan), `harmbench` (standardized behavior benchmark), `converge` (universal-prompt discovery) |
+| **11 CLI commands** | `run` (battery), `adaptive` (budgeted, picks by historical success), `escalate` (multi-turn with backtracking), `pair`, `evolve`, `campaign`, `app` (web-app scan), `harmbench` (benchmark), `converge` (universal-prompt discovery) |
+| **Ground-truth detectors** | 14 deterministic detectors verify what a response *contains* — XSS, SQLi, SSRF, SSTI, XXE, path traversal, shell commands, leaked credentials, hallucinated packages — evidence that stands on its own, independent of the judge |
+| **Adaptive selection** | `adaptive` mode ranks strategies by Wilson-scored historical success and stops on first hit: 2 probes where a full battery is 18 |
+| **Backtracking escalation** | `escalate` rewinds a turn that draws a refusal instead of arguing against it, so a refusal never becomes the conversation's established pattern |
+| **Any HTTP target** | `target.type: http` takes a raw Burp request with a `{PROMPT}` placeholder — attack a real app, not just OpenAI-shaped APIs |
+| **Semantic converters** | 10 LLM-backed rewrites (past tense, clinical register, low-resource translation, persuasion framings) alongside the 42 deterministic encoders |
+| **Dual taxonomy** | Findings carry OWASP LLM Top 10 (2025) **and** MITRE ATLAS technique IDs |
+| **Baseline comparison** | Every run reports what the model does when simply asked, beside what it does under attack, and the lift between them |
 | **Reliability validation** | `run --validate N` re-fires every winner N times and reports a true compliance rate with a Wilson confidence interval — a single hit is sampling noise, not a bypass |
 | **MCP server** | `redteam-mcp` exposes the arsenal (strategies, offline payload rendering, 42 encoders) to any MCP client |
 | **Graded judging** | Binary or full/partial/refused rubric; optional 3-model judge panel with majority vote + dissent recording |
